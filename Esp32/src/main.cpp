@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WebServer.h>
 
 // Pin definitions (same as yours)
 const int gripperRY = 30;
@@ -14,12 +15,33 @@ const int gripperRX = 46;
 const int gripperLX = 48;
 int s = 2;
 
-const char *ssid = "MyRobot";
-const char *password = "12345678";
+const char *ssid = "WIFI@LAB BLOCK E";
+const char *password = "lab2019e";
 
-WiFiServer server(80);
+const float R = 0.1;
+
+WebServer server(80);
 
 // put function definitions here:
+void computeWheelSpeeds(float Vx, float Vy, float omega,float &vB, float &vR, float &vL) {
+  // Wheel 1 (Back)
+  vB = -Vy + R * omega;
+
+  // Wheel 2 (Right)
+  vR = -0.866 * Vx + 0.5 * Vy + R * omega;
+
+  // Wheel 3 (Left)
+  vL =  0.866 * Vx + 0.5 * Vy + R * omega;
+
+  // Optional: Normalize speeds
+  float maxVal = max(max(abs(vB), abs(vR)), abs(vL));
+  if (maxVal > 1.0) {
+    vB /= maxVal;
+    vR /= maxVal;
+    vL /= maxVal;
+  }
+}
+
 void RUNRIGHT(int Speed) {
   digitalWrite(motorL1, 0);
   digitalWrite(motorR1, Speed);
@@ -89,11 +111,16 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   WiFi.begin(ssid, password);
-  IPAddress IP = WiFi.localIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
-  server.begin();
-  Serial.println("Robot started. Waiting for connection...");
+  Serial.print("Connecting to WiFi");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nConnected to WiFi");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
 
   // Initialize pins
   pinMode(motorR1, OUTPUT);
@@ -107,11 +134,26 @@ void setup() {
   pinMode(gripperRY, OUTPUT);
   pinMode(gripperLY, OUTPUT);
 
+  server.on("/joystick", []() {
+    String x = server.arg("x");
+    String y = server.arg("y");
+    Serial.printf("Joystick values — X: %s, Y: %s\n", x.c_str(), y.c_str());
+    server.send(200, "text/plain", "Joystick values received.");
+  });
+
+  server.onNotFound([]() {
+  Serial.printf("NOT FOUND: %s\n", server.uri().c_str());
+  server.send(404, "text/plain", "Not found");
+});
+
+
+  server.begin();
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  /*
   WiFiClient client = server.available();
   if (client) {
     String command = client.readStringUntil('\n');
@@ -140,5 +182,6 @@ void loop() {
     //else if (command == "CIRCLE") ;
     //else if (command == "CROSS") ;
     //else if (command == "SQUARE") ;
-  }
+  }*/
+ server.handleClient();
 }

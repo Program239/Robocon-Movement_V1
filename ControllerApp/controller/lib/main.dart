@@ -24,16 +24,16 @@ class JoystickPage extends StatefulWidget {
 }
 
 class _JoystickPageState extends State<JoystickPage> {
-  String esp32Ip = '192.168.4.1'; // Default ESP32 IP
+  String esp32Ip = '10.108.134.140'; // Default ESP32 IP
   final TextEditingController ipController = TextEditingController();
 
-  void sendCommand(String command) async {
-    final url = Uri.parse('http://$esp32Ip/$command');
+  void sendJoystickData(double x, double y) async {
+    final url = Uri.parse('http://$esp32Ip/joystick?x=$x&y=$y');
     try {
       await http.get(url);
-      print('Sent command: $command');
+      print('Sent joystick data: x=$x, y=$y');
     } catch (e) {
-      print('Error sending command: $e');
+      print('Error sending joystick data: $e');
     }
   }
 
@@ -58,6 +58,14 @@ class _JoystickPageState extends State<JoystickPage> {
                   esp32Ip = value; // Update the IP address
                 });
                 print('IP Address updated to: $esp32Ip');
+
+                // Show a SnackBar confirmation
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('ESP32 IP updated to $esp32Ip'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               },
             ),
           ),
@@ -73,20 +81,12 @@ class _JoystickPageState extends State<JoystickPage> {
 
                   // Deadzone
                   if (x.abs() < 0.2 && y.abs() < 0.2) {
-                    sendCommand('stop');
+                    sendJoystickData(0,0);
                     return;
                   }
-
-                  // Prioritize major direction
-                  if (y < -0.5 && x.abs() < 0.5) {
-                    sendCommand('up');
-                  } else if (y > 0.5 && x.abs() < 0.5) {
-                    sendCommand('down');
-                  } else if (x < -0.5 && y.abs() < 0.5) {
-                    sendCommand('left');
-                  } else if (x > 0.5 && y.abs() < 0.5) {
-                    sendCommand('right');
-                  }
+ 
+                  // Send joystick data to ESP32
+                  sendJoystickData(x, y);
                   // Diagonals (optional):
                   // Top-right, Bottom-left, etc.
                 },
