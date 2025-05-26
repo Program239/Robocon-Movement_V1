@@ -31,13 +31,6 @@ void computeWheelSpeeds(float Vx, float Vy, float omega,float &vB, float &vR, fl
   // Wheel 3 (Left)
   vL =  0.866 * Vx + 0.5 * Vy + R * omega;
 
-  // Optional: Normalize speeds
-  float maxVal = max(max(abs(vB), abs(vR)), abs(vL));
-  if (maxVal > 1.0) {
-    vB /= maxVal;
-    vR /= maxVal;
-    vL /= maxVal;
-  }
 }
 
 void setMotor(int pinA, int pinB, float speed) {
@@ -59,7 +52,7 @@ void setMotor(int pinA, int pinB, float speed) {
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  
+
   WiFi.softAP(ssid, password);
   Serial.print("Initiating WiFi AP: ");
   Serial.print(ssid);
