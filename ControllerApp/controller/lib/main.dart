@@ -26,7 +26,9 @@ class JoystickPage extends StatefulWidget {
 class _JoystickPageState extends State<JoystickPage> {
   String esp32Ip = '192.168.4.1'; // Default ESP32 IP
   final TextEditingController ipController = TextEditingController();
+  double sliderValue = 0;
 
+  // Send joystick x,y data
   void sendJoystickData(double x, double y) async {
     final url = Uri.parse('http://$esp32Ip/joystick?x=$x&y=$y');
     try {
@@ -37,16 +39,48 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
+  // Send slider (rotation) data
+  void sendSliderData(double val) async {
+    final url = Uri.parse('http://$esp32Ip/rotation?val=$val');
+    try {
+      await http.get(url);
+      print('Sent rotation data: val=$val');
+    } catch (e) {
+      print('Error sending rotation data: $e');
+    }
+  }
+
+  // Button 1 pressed
+  void onButton1Pressed() async {
+    final url = Uri.parse('http://$esp32Ip/button1');
+    try {
+      await http.get(url);
+      print('Button 1 pressed');
+    } catch (e) {
+      print('Error sending button1 command: $e');
+    }
+  }
+
+  // Button 2 pressed
+  void onButton2Pressed() async {
+    final url = Uri.parse('http://$esp32Ip/button2');
+    try {
+      await http.get(url);
+      print('Button 2 pressed');
+    } catch (e) {
+      print('Error sending button2 command: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Robot Joystick')),
+      appBar: AppBar(title: const Text('Robot Controller')),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // TextField for IP Address
+          // IP address input on top
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.all(12.0),
             child: TextField(
               controller: ipController,
               decoration: InputDecoration(
@@ -55,11 +89,10 @@ class _JoystickPageState extends State<JoystickPage> {
               ),
               onSubmitted: (value) {
                 setState(() {
-                  esp32Ip = value; // Update the IP address
+                  esp32Ip = value;
                 });
                 print('IP Address updated to: $esp32Ip');
 
-                // Show a SnackBar confirmation
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('ESP32 IP updated to $esp32Ip'),
@@ -69,28 +102,94 @@ class _JoystickPageState extends State<JoystickPage> {
               },
             ),
           ),
-          const SizedBox(height: 20),
-          // Joystick
-          Expanded(
-            child: Center(
-              child: Joystick(
-                mode: JoystickMode.all,
-                listener: (details) {
-                  double x = details.x;
-                  double y = details.y;
 
-                  // Deadzone
-                  if (x.abs() < 0.2 && y.abs() < 0.2) {
-                    sendJoystickData(0,0);
-                    return;
-                  }
- 
-                  // Send joystick data to ESP32
-                  sendJoystickData(x, y);
-                  // Diagonals (optional):
-                  // Top-right, Bottom-left, etc.
-                },
-              ),
+          // Main control row: joystick + slider + buttons
+          Expanded(
+            child: Row(
+              children: [
+                // Joystick on left
+                Expanded(
+                  flex: 3,
+                  child: Center(
+                    child: Joystick(
+                      mode: JoystickMode.all,
+                      listener: (details) {
+                        double x = details.x;
+                        double y = details.y;
+
+                        // Deadzone
+                        if (x.abs() < 0.2 && y.abs() < 0.2) {
+                          sendJoystickData(0, 0);
+                          return;
+                        }
+
+                        sendJoystickData(x, y);
+                      },
+                    ),
+                  ),
+                ),
+                
+                // Buttons in the middle
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Two buttons for future functions
+                        ElevatedButton(
+                          onPressed: onButton1Pressed,
+                          child: const Text('Button 1'),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: onButton2Pressed,
+                          child: const Text('Button 2'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Slider on right
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Vertical slider rotated
+                        RotatedBox(
+                          quarterTurns: -1,
+                          child: Slider(
+                            value: sliderValue,
+                            min: -1,
+                            max: 1,
+                            divisions: 100,
+                            label: sliderValue.toStringAsFixed(2),
+                            onChanged: (val) {
+                              setState(() {
+                                sliderValue = val;
+                              });
+                              sendSliderData(sliderValue);
+                            },
+                            onChangeEnd: (val) {
+                              // Send final value when slider is released
+                              setState(() {
+                                sliderValue = 0; // Reset slider after sending         
+                              });
+                              sendSliderData(0);
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 19),
+                      ],   
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -98,5 +197,3 @@ class _JoystickPageState extends State<JoystickPage> {
     );
   }
 }
-
-

@@ -11,6 +11,7 @@ const int motorR3 = 13;
 const int motorL3 = 12;
 String joystickX = "0";
 String joystickY = "0";
+String slider = "0";
 int s = 2;
 
 const char *ssid = "ESP32-ROBOT";
@@ -79,6 +80,12 @@ void setup() {
     server.send(200, "text/plain", "Joystick values received.");
   });
 
+  server.on("/rotation", []() {
+    slider = server.arg("val");
+    Serial.printf("Slider value: %s\n", slider.c_str());
+    server.send(200, "text/plain", "Slider value received.");
+  });
+
   server.on("/", []() {
   server.send(200, "text/plain", "ESP32 is running!");
   });
@@ -97,10 +104,10 @@ void loop() {
   
   float stickY = joystickY.toFloat();
   float stickX = joystickX.toFloat();
-  //float stickRx = PS4.getAnalogHat(RightHatX);
+  float slide = slider.toFloat();
   float vB, vR, vL;
 
-  computeWheelSpeeds(stickY, stickX, 0, vB, vR, vL);
+  computeWheelSpeeds(stickY, stickX, slide, vB, vR, vL);
   setMotor(motorL1, motorR1, vB);
   setMotor(motorL2, motorR2, vR);
   setMotor(motorL3, motorR3, vL);
