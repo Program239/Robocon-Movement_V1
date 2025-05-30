@@ -12,7 +12,7 @@ const int motorL3 = 12;
 String joystickX = "0";
 String joystickY = "0";
 String slider = "0";
-int s = 2;
+int shooterDirection = 0;
 
 const char *ssid = "ESP32-ROBOT";
 const char *password = "1234567890";
@@ -68,10 +68,12 @@ void setup() {
   // Initialize pins
   pinMode(motorR1, OUTPUT);
   pinMode(motorR2, OUTPUT);
+  /*
   pinMode(motorR3, OUTPUT);
   pinMode(motorL1, OUTPUT);
   pinMode(motorL2, OUTPUT);
   pinMode(motorL3, OUTPUT);
+  */
 
   server.on("/joystick", []() {
     joystickX = server.arg("x");
@@ -84,6 +86,24 @@ void setup() {
     slider = server.arg("val");
     Serial.printf("Slider value: %s\n", slider.c_str());
     server.send(200, "text/plain", "Slider value received.");
+  });
+  
+  server.on("/right", []() {
+    shooterDirection = 1;
+    Serial.printf("Right is pressed\n");
+    server.send(200, "text/plain", "Right value received.");
+  });
+
+  server.on("/left", []() {
+    shooterDirection = 2;
+    Serial.printf("Left is pressed\n");
+    server.send(200, "text/plain", "Left value received.");
+  });
+
+  server.on("/stop", []() {
+    shooterDirection = 0;
+    Serial.printf("Stop is pressed\n");
+    server.send(200, "text/plain", "Stop value received.");
   });
 
   server.on("/", []() {
@@ -101,16 +121,38 @@ void setup() {
 }
 
 void loop() {
-  
+
+  setMotor(motorR1, motorR2, 0.5);
+  setMotor(motorR1, motorR2, -0.5);
+  setMotor(motorR1, motorR2, 0.0); 
+
+  switch (shooterDirection) {
+    case 0: // Stop
+      setMotor(motorR1, motorR2, 0.0);
+      break;
+    case 1: // Right
+      setMotor(motorR1, motorR2, 0.5);
+      break;
+    case 2: // Left
+      setMotor(motorR1, motorR2, -0.5);
+      break;
+    default:
+      setMotor(motorR1, motorR2, 0.0);
+      break;
+  }
+
+
+  /*
   float stickY = joystickY.toFloat();
   float stickX = joystickX.toFloat();
   float slide = slider.toFloat();
   float vB, vR, vL;
-
+  
   computeWheelSpeeds(stickY, stickX, slide, vB, vR, vL);
   setMotor(motorL1, motorR1, vB);
   setMotor(motorL2, motorR2, vR);
   setMotor(motorL3, motorR3, vL);
+  */
   //Serial.printf("Motor speeds - B: %.2f, R: %.2f, L: %.2f\n", vB, vR, vL);
 
   server.handleClient();

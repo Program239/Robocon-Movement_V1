@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 
 void main() {
   runApp(const MyApp());
@@ -28,6 +29,8 @@ class _JoystickPageState extends State<JoystickPage> {
   final TextEditingController ipController = TextEditingController();
   double sliderValue = 0;
 
+
+
   // Send joystick x,y data
   void sendJoystickData(double x, double y) async {
     final url = Uri.parse('http://$esp32Ip/joystick?x=$x&y=$y');
@@ -50,25 +53,33 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
-  // Button 1 pressed
-  void onButton1Pressed() async {
-    final url = Uri.parse('http://$esp32Ip/button1');
+  void sendButton1Hold() async {
+    final url = Uri.parse('http://$esp32Ip/right');
     try {
       await http.get(url);
-      print('Button 1 pressed');
+      print('Right sent');
     } catch (e) {
-      print('Error sending button1 command: $e');
+      print('Error sending button1 hold: $e');
     }
   }
 
-  // Button 2 pressed
-  void onButton2Pressed() async {
-    final url = Uri.parse('http://$esp32Ip/button2');
+  void sendButtonRelease() async {
+    final url = Uri.parse('http://$esp32Ip/stop');
     try {
       await http.get(url);
-      print('Button 2 pressed');
+      print('Stop sent');
     } catch (e) {
-      print('Error sending button2 command: $e');
+      print('Error sending button1 release: $e');
+    }
+  }
+
+  void sendButton2Hold() async {
+    final url = Uri.parse('http://$esp32Ip/left');
+    try {
+      await http.get(url);
+      print('Left sent');
+    } catch (e) {
+      print('Error sending button1 hold: $e');
     }
   }
 
@@ -138,15 +149,24 @@ class _JoystickPageState extends State<JoystickPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // Two buttons for future functions
-                        ElevatedButton(
-                          onPressed: onButton1Pressed,
-                          child: const Text('Button 1'),
+                        GestureDetector(
+                          onLongPressStart: (_) => sendButton1Hold(),
+                          onLongPressEnd: (_) => sendButtonRelease(),
+                          child: ElevatedButton(
+                            onPressed: sendButtonRelease,
+                            child: const Text('Right'),
+                          ),
                         ),
                         const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: onButton2Pressed,
-                          child: const Text('Button 2'),
+                          GestureDetector(
+                          onLongPressStart: (_) => sendButton2Hold(),
+                          onLongPressEnd: (_) => sendButtonRelease(),
+                          child: ElevatedButton(
+                            onPressed: sendButtonRelease,
+                            child: const Text('Left'),
+                          ),
                         ),
+                        
                       ],
                     ),
                   ),
