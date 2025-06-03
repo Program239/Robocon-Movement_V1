@@ -1,0 +1,56 @@
+# === General ===
+*.log
+*.tmp
+*.bak
+*.swp
+*.DS_Store
+
+# === VSCode ===
+.vscode/
+
+# === C / C++ ===
+*.out
+*.o
+*.obj
+*.exe
+*.a
+*.so
+*.dll
+*.dylib
+*.dSYM/
+build/
+cmake-build-*/
+
+# === CMake ===
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# === Dart / Flutter ===
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+flutter_*.png
+*.flutter-plugins*
+*.lock
+
+# === Swift (iOS/macOS) ===
+DerivedData/
+*.xcworkspace
+*.xcodeproj
+*.xcuserstate
+*.xcuserdatad
+*.xcsettings
+*.idea/
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.env
+.venv/
