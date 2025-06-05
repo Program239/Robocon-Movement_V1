@@ -34,6 +34,8 @@ void computeWheelSpeeds(float Vx, float Vy, float omega,float &vB, float &vR, fl
 
 }
 
+//set motor speed for each pin
+
 void setMotor(int pinA, int pinB, float speed) {
   int pwm = abs(speed * 255.0);
   pwm = constrain(pwm, 0, 255);
