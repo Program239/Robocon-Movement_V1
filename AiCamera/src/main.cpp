@@ -1,38 +1,71 @@
 #include <Wire.h>
 #include <HUSKYLENS.h>
+#include <WiFi.h>
+#include <WebServer.h>
+
+WebServer server(80);
+
+const char *ssid = "WIFI@LAB BLOCK E";
+const char *password = "lab2019e";
 
 HUSKYLENS huskylens;
+
+int lastX = -1, lastY = -1;
 
 void setup() {
   Serial.begin(115200);
   Wire.begin(21, 22);  // ESP32 default pins
+  WiFi.begin(ssid, password);
 
-  delay(100); // Let everything stabilize
-
-  while (!huskylens.begin(Wire)) {
-    Serial.println("Begin failed");
-    delay(1000);  // Prevent watchdog resets
+  Serial.print("Connecting to " + String(ssid) + "...");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
   }
 
+  Serial.println("\nConnected to WiFi!");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  
+  delay(100); // Let everything stabilize
+
+  /*while (!huskylens.begin(Wire)) {
+    Serial.println("Begin failed");
+    delay(1000);  // Prevent watchdog resets
+  }*/
+
+  delay(1000); // Allow HuskyLens to initialize
+
+  server.on("/camera", HTTP_GET, []() {
+      String response = "X: " + String(lastX) + ", Y: " + String(lastY) + "\n";
+      server.send(200, "text/plain", response);
+    });
+  
+  server.on("/", []() {
+    server.send(200, "text/plain", "ESP32 is running!");
+  });
+
+  server.begin();
   huskylens.writeAlgorithm(ALGORITHM_OBJECT_TRACKING);
 }
 
 void loop() {
-  static int lastX = -1, lastY = -1;
 
-if (huskylens.request()) {
-  if (huskylens.available()) {
-    HUSKYLENSResult result = huskylens.read();
+  if (huskylens.request()) {
+    if (huskylens.available()) {
+      HUSKYLENSResult result = huskylens.read();
 
-    if (result.xCenter != lastX || result.yCenter != lastY) {
-      Serial.printf("Moved: X=%d, Y=%d\n", result.xCenter, result.yCenter);
-      lastX = result.xCenter;
-      lastY = result.yCenter;
-    } else {
-      //Serial.println("Same position, maybe not tracking?");
+      if (result.xCenter != lastX || result.yCenter != lastY) {
+        Serial.printf("Moved: X=%d, Y=%d\n", result.xCenter, result.yCenter);
+        lastX = result.xCenter;
+        lastY = result.yCenter;
+      } else {
+        //Serial.println("Same position, maybe not tracking?");
+      }
     }
-  }
   } else {
   Serial.println("No data from HuskyLens");
   }
+
+  server.handleClient();
 }
