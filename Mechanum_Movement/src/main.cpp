@@ -81,7 +81,7 @@ void setup() {
   server.on("/joystick", []() {
     joystickX = server.arg("x");
     joystickY = server.arg("y");
-    Serial.printf("Joystick values — X: %s, Y: %s\n", joystickX.c_str(), joystickY.c_str());
+    //Serial.printf("Joystick values — X: %s, Y: %s\n", joystickX.c_str(), joystickY.c_str());
     server.send(200, "text/plain", "Joystick values received.");
   });
 
@@ -113,15 +113,15 @@ void loop() {
     setMotor(motorBL_L4, motorBL_R4, vBL);
 
     
-    /*Serial.print(F("\tvFR: "));
+    Serial.print(F("\tvFR: "));
     Serial.print(vFR);
     Serial.print(F("\tvFL: "));
     Serial.print(vFL);
     Serial.print(F("\tvBR: "));
     Serial.print(vBR);
     Serial.print(F("\tvBL: "));
-    Serial.print(vBL);*/
-    Serial.print(F("\tSpeed: "));
+    Serial.print(vBL);
+    //Serial.print(F("\tSpeed: "));
 
  server.handleClient();
 }
