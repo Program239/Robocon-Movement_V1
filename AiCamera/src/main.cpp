@@ -5,14 +5,20 @@
 
 WebServer server(80);
 
-const char *ssid = "WIFI@LAB BLOCK E";
-const char *password = "lab2019e";
+const char *ssid = "ESP32-ROBOT";
+const char *password = "1234567890";
 
 HUSKYLENS huskylens;
 
 int lastX = -1, lastY = -1;
 
 void setup() {
+  // Set your desired static IP, gateway, and subnet
+  IPAddress local_IP(192, 168, 4, 2);      // Change to your desired static IP
+  IPAddress gateway(192, 168, 4, 1);        // Usually your router or AP IP
+  IPAddress subnet(255, 255, 255, 0);       // Common subnet mask
+
+  WiFi.config(local_IP, gateway, subnet);
   Serial.begin(115200);
   Wire.begin(21, 22);  // ESP32 default pins
   WiFi.begin(ssid, password);
@@ -29,15 +35,18 @@ void setup() {
   
   delay(100); // Let everything stabilize
 
-  /*while (!huskylens.begin(Wire)) {
+  while (!huskylens.begin(Wire)) {
     Serial.println("Begin failed");
     delay(1000);  // Prevent watchdog resets
-  }*/
+  }
 
   delay(1000); // Allow HuskyLens to initialize
 
+
+
   server.on("/camera", HTTP_GET, []() {
-      String response = "X: " + String(lastX) + ", Y: " + String(lastY) + "\n";
+      String response = "/camera?x=" + String(lastX) + "&y=" + String(lastY);
+      server.sendHeader("Location", response);
       server.send(200, "text/plain", response);
     });
   
