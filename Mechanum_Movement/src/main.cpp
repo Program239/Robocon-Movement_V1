@@ -11,16 +11,20 @@ const int motorBR_R3 = 13;
 const int motorBR_L3 = 12;
 const int motorBL_R4 = 25;
 const int motorBL_L4 = 33; 
+const int Shooter = 32; 
+const int Tolak = 14; 
 String joystickX = "0";
 String joystickY = "0";
 int s = 2;
+int button1State = 0;
+int button2State = 0;
 
 const char *ssid = "mechanum";
 const char *password = "mechanum123";
 
 const float df = 0.1;
 
-const int MAX_PWM = 100;
+const int MAX_PWM = 230;
 
 WebServer server(80);
 
@@ -31,7 +35,7 @@ void computeWheelSpeeds(float Vx, float Vy, float omega,float &vFR, float &vFL, 
 
    vFL = Vy + Vx - df * omega;
   
-   vBR = Vx + Vy + df * omega;
+   vBR = -Vx - Vy + df * omega;
 
    vBL =  Vx - Vy - df * omega;
   
@@ -76,6 +80,9 @@ void setup() {
   pinMode(motorBR_L3, OUTPUT);
   pinMode(motorBL_R4, OUTPUT);
   pinMode(motorBL_L4, OUTPUT);
+  pinMode(Shooter, OUTPUT);
+  pinMode(Tolak, OUTPUT);
+
  
 
   server.on("/joystick", []() {
@@ -94,13 +101,28 @@ void setup() {
   server.send(404, "text/plain", "Not found");
   });
 
+  server.on("/button1", []() {
+    button1State = 1;
+    Serial.printf("Shooter is pressed\n");
+    server.send(200, "text/plain", "button1 value received.");
+    digitalWrite(Shooter,HIGH);
+
+  });
+
+  server.on("/button2", []() {
+    button2State = 1;
+    Serial.printf("Tolak is pressed\n");
+    server.send(200, "text/plain", "button2 value received.");
+    digitalWrite(Tolak,HIGH);
+  });
+
 
   server.begin();
 
 }
 
 void loop() {
-   float stickY = joystickY.toFloat();
+   float stickY = -joystickY.toFloat();
    float stickX = joystickX.toFloat();
    //float stickRx = joystick.toFloat();
    float vFR, vFL, vBR, vBL;
@@ -112,15 +134,14 @@ void loop() {
     setMotor(motorBR_L3, motorBR_R3, vBR);
     setMotor(motorBL_L4, motorBL_R4, vBL);
 
-    
-    Serial.print(F("\tvFR: "));
+    /*Serial.print(F("\tvFR: "));
     Serial.print(vFR);
     Serial.print(F("\tvFL: "));
     Serial.print(vFL);
     Serial.print(F("\tvBR: "));
     Serial.print(vBR);
-    Serial.print(F("\tvBL: "));
-    Serial.print(vBL);
+    Serial.print(F("\tvBL: \n"));
+    Serial.print(vBL);*/
     //Serial.print(F("\tSpeed: "));
 
  server.handleClient();
