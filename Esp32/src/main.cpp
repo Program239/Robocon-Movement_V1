@@ -9,10 +9,17 @@ const int motorR2 = 26;
 const int motorL2 = 27;
 const int motorR3 = 13;
 const int motorL3 = 12;
+const int Rturn = 25;
+const int Lturn = 33;
+const int Shooter = 32; 
+const int Tolak = 14; 
 String joystickX = "0";
 String joystickY = "0";
 String slider = "0";
 int shooterDirection = 0;
+int button1State = 0;
+int button2State = 0;
+int s=2;
 
 const char *ssid = "ESP32-ROBOT";
 const char *password = "1234567890";
@@ -68,17 +75,17 @@ void setup() {
   // Initialize pins
   pinMode(motorR1, OUTPUT);
   pinMode(motorR2, OUTPUT);
-  /*
   pinMode(motorR3, OUTPUT);
   pinMode(motorL1, OUTPUT);
   pinMode(motorL2, OUTPUT);
   pinMode(motorL3, OUTPUT);
-  */
+  pinMode(Rturn, OUTPUT);
+  pinMode(Lturn, OUTPUT);
 
   server.on("/joystick", []() {
     joystickX = server.arg("x");
     joystickY = server.arg("y");
-    Serial.printf("Joystick values X: %s, Y: %s\n", joystickX.c_str(), joystickY.c_str());
+    //Serial.printf("Joystick values X: %s, Y: %s\n", joystickX.c_str(), joystickY.c_str());
     server.send(200, "text/plain", "Joystick values received.");
   });
 
@@ -92,18 +99,39 @@ void setup() {
     shooterDirection = 1;
     Serial.printf("Right is pressed\n");
     server.send(200, "text/plain", "Right value received.");
+    digitalWrite(Lturn,LOW);
+    digitalWrite(Rturn,HIGH);
   });
 
   server.on("/left", []() {
-    shooterDirection = 2;
+    shooterDirection = -1;
     Serial.printf("Left is pressed\n");
     server.send(200, "text/plain", "Left value received.");
+    digitalWrite(Lturn,HIGH);
+    digitalWrite(Rturn,LOW);
   });
 
   server.on("/stop", []() {
     shooterDirection = 0;
     Serial.printf("Stop is pressed\n");
     server.send(200, "text/plain", "Stop value received.");
+    digitalWrite(Lturn,LOW);
+    digitalWrite(Rturn,LOW);
+  });
+
+  server.on("/button1", []() {
+    button1State = 1;
+    Serial.printf("Shooter is pressed\n");
+    server.send(200, "text/plain", "button1 value received.");
+    digitalWrite(Shooter,HIGH);
+
+  });
+
+  server.on("/button2", []() {
+    button2State = 1;
+    Serial.printf("Tolak is pressed\n");
+    server.send(200, "text/plain", "button2 value received.");
+    digitalWrite(Tolak,HIGH);
   });
 
   server.on("/", []() {
@@ -142,9 +170,9 @@ void loop() {
   }
 
 
-  /*
+  
   float stickY = joystickY.toFloat();
-  float stickX = joystickX.toFloat();
+  float stickX = -joystickX.toFloat();
   float slide = slider.toFloat();
   float vB, vR, vL;
   
@@ -152,8 +180,7 @@ void loop() {
   setMotor(motorL1, motorR1, vB);
   setMotor(motorL2, motorR2, vR);
   setMotor(motorL3, motorR3, vL);
-  */
-  //Serial.printf("Motor speeds - B: %.2f, R: %.2f, L: %.2f\n", vB, vR, vL);
+  Serial.printf("Motor speeds - B: %.2f, R: %.2f, L: %.2f\n", vB, vR, vL);
 
   server.handleClient();
 }
