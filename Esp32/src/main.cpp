@@ -3,23 +3,22 @@
 #include <WebServer.h>
 
 // Pin definitions (same as yours)
-const int motorR1 = 18;
-const int motorL1 = 19;
+const int motorR1 = 19;
+const int motorL1 = 18;
 const int motorR2 = 26;
 const int motorL2 = 27;
 const int motorR3 = 13;
 const int motorL3 = 12;
 const int Rturn = 25;
 const int Lturn = 33;
-const int Shooter = 32; 
+const int Shooter = 35; 
 const int Tolak = 14; 
 String joystickX = "0";
 String joystickY = "0";
 String slider = "0";
 int shooterDirection = 0;
-int button1State = 0;
-int button2State = 0;
 int s=2;
+//float slide = slider.toFloat() * 0.5;
 
 const char *ssid = "ESP32-ROBOT";
 const char *password = "1234567890";
@@ -31,13 +30,13 @@ WebServer server(80);
 // put function definitions here:
 void computeWheelSpeeds(float Vx, float Vy, float omega,float &vB, float &vR, float &vL) {
   // Wheel 1 (Back)
-  vB = -Vy + R * omega;
+  vB = Vy + R * omega;
 
   // Wheel 2 (Right)
   vR = -0.866 * Vx + 0.5 * Vy + R * omega;
 
   // Wheel 3 (Left)
-  vL =  0.866 * Vx + 0.5 * Vy + R * omega;
+  vL = 0.866 * Vx + 0.5 * Vy + R * omega;
 
 }
 
@@ -99,39 +98,21 @@ void setup() {
     shooterDirection = 1;
     Serial.printf("Right is pressed\n");
     server.send(200, "text/plain", "Right value received.");
-    digitalWrite(Lturn,LOW);
-    digitalWrite(Rturn,HIGH);
+
   });
 
   server.on("/left", []() {
-    shooterDirection = -1;
+    shooterDirection = 2;
     Serial.printf("Left is pressed\n");
     server.send(200, "text/plain", "Left value received.");
-    digitalWrite(Lturn,HIGH);
-    digitalWrite(Rturn,LOW);
+
   });
 
   server.on("/stop", []() {
     shooterDirection = 0;
     Serial.printf("Stop is pressed\n");
     server.send(200, "text/plain", "Stop value received.");
-    digitalWrite(Lturn,LOW);
-    digitalWrite(Rturn,LOW);
-  });
 
-  server.on("/button1", []() {
-    button1State = 1;
-    Serial.printf("Shooter is pressed\n");
-    server.send(200, "text/plain", "button1 value received.");
-    digitalWrite(Shooter,HIGH);
-
-  });
-
-  server.on("/button2", []() {
-    button2State = 1;
-    Serial.printf("Tolak is pressed\n");
-    server.send(200, "text/plain", "button2 value received.");
-    digitalWrite(Tolak,HIGH);
   });
 
   server.on("/", []() {
@@ -144,28 +125,48 @@ void setup() {
     server.send(404, "text/plain", "Not found");
   });
 
+  /*server.on("/button1", []() {
+    shooterDirection = 1;
+    Serial.printf("Shooter is pressed\n");
+    server.send(200, "text/plain", "button1 value received.");
+    digitalWrite(Shooter,HIGH);
+    delay(5000);
+    digitalWrite(Tolak,LOW);
+
+  });
+
+
+  server.on("/button2", []() {
+    shooterDirection = 2;
+    Serial.printf("Tolak is pressed\n");
+    server.send(200, "text/plain", "button2 value received.");
+    digitalWrite(Tolak,HIGH);
+    delay(4000);
+    digitalWrite(Tolak,LOW);
+  });*/
+
   server.begin();
 
 }
 
 void loop() {
 
-  setMotor(motorR1, motorR2, 0.5);
-  setMotor(motorR1, motorR2, -0.5);
-  setMotor(motorR1, motorR2, 0.0); 
+  setMotor(Rturn, Lturn, 0.5);
+  setMotor(Rturn, Lturn, -0.5);
+  setMotor(Rturn, Lturn, 0.0); 
 
   switch (shooterDirection) {
     case 0: // Stop
-      setMotor(motorR1, motorR2, 0.0);
+      setMotor(Rturn, Lturn, 0.0);
       break;
     case 1: // Right
-      setMotor(motorR1, motorR2, 0.5);
+      setMotor(Rturn, Lturn, 0.5);
       break;
     case 2: // Left
-      setMotor(motorR1, motorR2, -0.5);
+      setMotor(Rturn, Lturn, -0.5);
       break;
     default:
-      setMotor(motorR1, motorR2, 0.0);
+      setMotor(Rturn, Lturn, 0.0);
       break;
   }
 
@@ -180,7 +181,7 @@ void loop() {
   setMotor(motorL1, motorR1, vB);
   setMotor(motorL2, motorR2, vR);
   setMotor(motorL3, motorR3, vL);
-  Serial.printf("Motor speeds - B: %.2f, R: %.2f, L: %.2f\n", vB, vR, vL);
+  //Serial.printf("Motor speeds - B: %.2f, R: %.2f, L: %.2f\n", vB, vR, vL);
 
   server.handleClient();
 }

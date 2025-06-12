@@ -11,13 +11,13 @@ const int motorBR_R3 = 13;
 const int motorBR_L3 = 12;
 const int motorBL_R4 = 25;
 const int motorBL_L4 = 33; 
-const int Shooter = 32; 
+const int Shooter = 35; 
 const int Tolak = 14; 
 String joystickX = "0";
 String joystickY = "0";
 int s = 2;
-int button1State = 0;
-int button2State = 0;
+int shooterDirection = 0;
+
 
 const char *ssid = "mechanum";
 const char *password = "mechanum123";
@@ -102,27 +102,37 @@ void setup() {
   });
 
   server.on("/button1", []() {
-    button1State = 1;
+    shooterDirection = 1;
     Serial.printf("Shooter is pressed\n");
     server.send(200, "text/plain", "button1 value received.");
     digitalWrite(Shooter,HIGH);
+    delay(7000);
+    digitalWrite(Tolak,LOW);
 
   });
 
   server.on("/button2", []() {
-    button2State = 1;
+    shooterDirection = 2;
     Serial.printf("Tolak is pressed\n");
     server.send(200, "text/plain", "button2 value received.");
     digitalWrite(Tolak,HIGH);
+    delay(4000);
+    digitalWrite(Tolak,LOW);
   });
 
+   /*server.on("/stop", []() {
+    shooterDirection = 1;
+    Serial.printf("Stop is pressed\n");
+    server.send(200, "text/plain", "Stop value received.");
+    digitalWrite(Shooter, LOW);
+    digitalWrite(Tolak, LOW);
+  });*/
 
-  server.begin();
+  server.begin(); // <-- This line was misplaced before. Now it's correctly placed outside the handler.
 
 }
-
 void loop() {
-   float stickY = -joystickY.toFloat();
+   float stickY = joystickY.toFloat();
    float stickX = joystickX.toFloat();
    //float stickRx = joystick.toFloat();
    float vFR, vFL, vBR, vBL;
@@ -145,4 +155,5 @@ void loop() {
     //Serial.print(F("\tSpeed: "));
 
  server.handleClient();
+
 }
