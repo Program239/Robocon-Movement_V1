@@ -26,11 +26,15 @@ class JoystickPage extends StatefulWidget {
 
 class _JoystickPageState extends State<JoystickPage> {
   String esp32Ip = '192.168.4.1'; // Default ESP32 IP
-  String espCameraIp = '192.168.4.2'; // Default camera IP
   final TextEditingController ipController = TextEditingController();
-  double sliderValue = 0;
+  int rotationValue = 0;
+  double directionVal = 0;
   int lastX = 0;
   int lastY = 0;
+  int _elapsedSeconds = 0;
+  bool _timerRunning = false;
+
+  Timer? _gameTimer;
 
   // Send joystick x,y data
   void sendJoystickData(double x, double y) async {
@@ -44,7 +48,7 @@ class _JoystickPageState extends State<JoystickPage> {
   }
 
   // Send slider (rotation) data
-  void sendSliderData(double val) async {
+  void sendRotationData(int val) async {
     final url = Uri.parse('http://$esp32Ip/rotation?val=$val');
     try {
       await http.get(url);
@@ -54,47 +58,40 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
-  void sendButton1Hold() async {
-    final url = Uri.parse('http://$esp32Ip/right');
+  void sendGameTime(int val) async {
+    final url = Uri.parse('http://$esp32Ip/gameTimer?time=$val');
     try {
       await http.get(url);
-      sendCameraData();
-      print('Right sent');
+      print('Game time sent');
     } catch (e) {
-      print('Error sending button1 hold: $e');
+      print('Error sending game time: $e');
     }
   }
 
-  void sendButtonRelease() async {
-    final url = Uri.parse('http://$esp32Ip/stop');
-    try {
-      await http.get(url);
-      sendCameraData();
-      print('Stop sent');
-    } catch (e) {
-      print('Error sending button1 release: $e');
-    }
+  void startGameTimer() {
+    if (_gameTimer != null && _gameTimer!.isActive) return; // Prevent multiple timers
+
+    _timerRunning = true;
+    _elapsedSeconds = 0;
+
+    _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_timerRunning) {
+        setState(() {
+          _elapsedSeconds++;
+          sendGameTime(_elapsedSeconds);
+        });
+      }
+    });
   }
 
-  void sendButton2Hold() async {
-    final url = Uri.parse('http://$esp32Ip/left');
-    try {
-      await http.get(url);
-      sendCameraData();
-      print('Left sent');
-    } catch (e) {
-      print('Error sending button1 hold: $e');
+  void stopGameTimer() {
+    if (_gameTimer != null) {
+      _elapsedSeconds = 0;
+      _gameTimer!.cancel();
+      _gameTimer = null;
+    
     }
-  }
-
-  void sendCameraData() async {
-    final url = Uri.parse('http://$espCameraIp/camera?x=$lastX&y=$lastY');
-    try {
-      await http.get(url);
-      print('Sent camera coordinates: x=$lastX, y=$lastY');
-    } catch (e) {
-      print('Error sending camera command: $e');
-    }
+    _timerRunning = false;
   }
 
   @override
@@ -109,20 +106,31 @@ class _JoystickPageState extends State<JoystickPage> {
               children: [
                 Text(
                   'Basket Position = X: $lastX, Y: $lastY',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 8, width: 20),
+                Text(
+                  'Game Time: ${_elapsedSeconds}s',
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: stopGameTimer, 
+                  child: Text('Stop Timer')
+                ),
               ],
-            )
+              ),
           ),
 
-          // Main control row: joystick + slider + buttons
+          // Main control row: joystick + buttons
           Expanded(
             child: Row(
               children: [
                 // Joystick on left
+                SizedBox(width: 20),
+
                 Expanded(
-                  flex: 3,
+                  flex: 1,
                   child: Center(
                     child: Joystick(
                       mode: JoystickMode.all,
@@ -135,14 +143,16 @@ class _JoystickPageState extends State<JoystickPage> {
                           sendJoystickData(0, 0);
                           return;
                         }
-
+                        startGameTimer(); // Start timer when joystick is used
                         sendJoystickData(x, y);
                       },
                     ),
                   ),
                 ),
-                
-                // Buttons in the middle
+
+                SizedBox(width: 50),
+
+                // Rotation control on right
                 Expanded(
                   flex: 2,
                   child: Padding(
@@ -150,63 +160,47 @@ class _JoystickPageState extends State<JoystickPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Two buttons for future functions
-                        GestureDetector(
-                          onLongPressStart: (_) => sendButton1Hold(),
-                          onLongPressEnd: (_) => sendButtonRelease(),
-                          child: ElevatedButton(
-                            onPressed: sendButtonRelease,
-                            child: const Text('Right'),
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Left rotation button
+                            GestureDetector(
+                              onTapDown: (_) => sendRotationData(-1),
+                              onTapUp: (_) => sendRotationData(0),
+                              onTapCancel: () => sendRotationData(0),
+                              child: SizedBox(
+                                width: 200, // Set width
+                                height: 100, // Set height
+                                child: ElevatedButton(
+                                  onPressed: null, // Disabled to use GestureDetector
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(80, 50), // Minimum size
+                                  ),
+                                  child: Text('Left'),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 20),
+                            // Right rotation button
+                            GestureDetector(
+                              onTapDown: (_) => sendRotationData(1),
+                              onTapUp: (_) => sendRotationData(0),
+                              onTapCancel: () => sendRotationData(0),
+                              child: SizedBox(
+                                width: 200,
+                                height: 100,
+                                child: ElevatedButton(
+                                  onPressed: null,
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(80, 50),
+                                  ),
+                                  child: Text('Right'),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 20),
-                          GestureDetector(
-                          onLongPressStart: (_) => sendButton2Hold(),
-                          onLongPressEnd: (_) => sendButtonRelease(),
-                          child: ElevatedButton(
-                            onPressed: sendButtonRelease,
-                            child: const Text('Left'),
-                          ),
-                        ),
-                        
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Slider on right
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Vertical slider rotated
-                        RotatedBox(
-                          quarterTurns: -1,
-                          child: Slider(
-                            value: sliderValue,
-                            min: -1,
-                            max: 1,
-                            divisions: 100,
-                            label: sliderValue.toStringAsFixed(2),
-                            onChanged: (val) {
-                              setState(() {
-                                sliderValue = val;
-                              });
-                              sendSliderData(sliderValue);
-                            },
-                            onChangeEnd: (val) {
-                              // Send final value when slider is released
-                              setState(() {
-                                sliderValue = 0; // Reset slider after sending         
-                              });
-                              sendSliderData(0);
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 19),
                       ],   
                     ),
                   ),
