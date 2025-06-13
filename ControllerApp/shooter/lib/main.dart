@@ -59,13 +59,13 @@ class _JoystickPageState extends State<JoystickPage> {
   }
 
   // Send slider (rotation) data
-  void sendSliderData(double val) async {
-    final url = Uri.parse('http://$esp32Ip/rotation?val=$val');
+  void sendNetDirection(double val) async {
+    final url = Uri.parse('http://$esp32Ip/net?val=$val');
     try {
       await http.get(url);
-      print('Sent rotation data: val=$val');
+      print('Sent net data: val=$val');
     } catch (e) {
-      print('Error sending rotation data: $e');
+      print('Error sending net data: $e');
     }
   }
 
@@ -112,7 +112,8 @@ class _JoystickPageState extends State<JoystickPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body:
+      Column(
         children: [
           //Basket Position Display
           Padding(
@@ -133,44 +134,111 @@ class _JoystickPageState extends State<JoystickPage> {
           Expanded(
             child: Row(
               children: [
-                // Slider on left
+                const SizedBox(width: 20), // Add some space on the left
+                // Buttons on left
                 Expanded(
-                  child: RotatedBox(
-                    quarterTurns: -1,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-                      child: Column(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Net Up Button
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              onTapDown: (_) => sendNetDirection(1),
+                              onTapUp: (_) => sendNetDirection(0),
+                              onTapCancel: () => sendNetDirection(0),
+                              child: SizedBox(
+                                width: 130, // Set width
+                                height: 80, // Set height
+                                child: ElevatedButton(
+                                  onPressed: null, // Disabled to use GestureDetector
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(80, 50), // Minimum size
+                                  ),
+                                  child: Text('Up'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        //Shooter Rotation Buttons
+                        Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Slider(
-                            value: netValue,
-                            min: -1,
-                            max: 1,
-                            divisions: 100,
-                            label: netValue.toStringAsFixed(2),
-                            onChanged: (val) {
-                              setState(() {
-                                netValue = val;
-                              });
-                              sendSliderData(netValue);
-                            },
-                            onChangeEnd: (val) {
-                              setState(() {
-                                netValue = 0;
-                              });
-                              sendSliderData(0);
-                            },
+                          // Left rotation button
+                          GestureDetector(
+                            onTapDown: (_) => sendShooterDirection(-1),
+                            onTapUp: (_) => sendShooterDirection(0),
+                            onTapCancel: () => sendShooterDirection(0),
+                            child: SizedBox(
+                              width: 130, // Set width
+                              height: 80, // Set height
+                              child: ElevatedButton(
+                                onPressed: null, // Disabled to use GestureDetector
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: Size(80, 50), // Minimum size
+                                ),
+                                child: Text('Left'),
+                              ),
+                            ),
                           ),
-                          const SizedBox(height: 19),
+                          SizedBox(width: 60),
+                          // Right rotation button
+                          GestureDetector(
+                            onTapDown: (_) => sendShooterDirection(1),
+                            onTapUp: (_) => sendShooterDirection(0),
+                            onTapCancel: () => sendShooterDirection(0),
+                            child: SizedBox(
+                              width: 130,
+                              height: 80,
+                              child: ElevatedButton(
+                                onPressed: null,
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: Size(80, 50),
+                                ),
+                                child: Text('Right'),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
+                        const SizedBox(height: 20),
+                      
+                      // Net Down Button
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              onTapDown: (_) => sendNetDirection(-1),
+                              onTapUp: (_) => sendNetDirection(0),
+                              onTapCancel: () => sendNetDirection(0),
+                              child: SizedBox(
+                                width: 130, // Set width
+                                height: 80, // Set height
+                                child: ElevatedButton(
+                                  onPressed: null, // Disabled to use GestureDetector
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(80, 50), // Minimum size
+                                  ),
+                                  child: Text('Down'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 30),
+                      ],
                     ),
                   ),
                 ),
                 
-                // Buttons in the middle
+                // Shooter Buttons
                 Expanded(
-                  flex: 2,
+                  flex: 1,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
                     child: Column(
@@ -179,23 +247,38 @@ class _JoystickPageState extends State<JoystickPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Switch(
-                              value: motorValue,
-                              onChanged: (value) {
-                                setState(() {
-                                  motorValue = value;
-                                });
-                                if (motorValue) {
-                                  sendMotorValue(1);
-                                } else {
-                                  sendMotorValue(0);
-                                }
-                              },
+                            SizedBox(
+                              height: 130,
+                              width: 150,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('Motor on/off'),
+                                  Switch(
+                                    value: motorValue,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        motorValue = value;
+                                      });
+                                      if (motorValue) {
+                                        sendMotorValue(1);
+                                      } else {
+                                        sendMotorValue(0);
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: sendShootValue,
-                              child: const Text('Shoot'),
+                            
+                            const SizedBox(width: 20),
+                            SizedBox(
+                              width: 130, // Set width
+                              height: 80, // Set height
+                              child: ElevatedButton(
+                                onPressed: sendShootValue,
+                                child: const Text('Shoot'),
+                              ),
                             ),
                           ],
                         ),
@@ -205,39 +288,6 @@ class _JoystickPageState extends State<JoystickPage> {
                   ),
                 ),
 
-                // Slider on right
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [ 
-                        Slider(
-                          value: sliderValue,
-                          min: -1,
-                          max: 1,
-                          divisions: 100,
-                          label: sliderValue.toStringAsFixed(2),
-                          onChanged: (val) {
-                            setState(() {
-                              sliderValue = val;
-                            });
-                            sendSliderData(sliderValue);
-                          },
-                          onChangeEnd: (val) {
-                            // Send final value when slider is released
-                            setState(() {
-                              sliderValue = 0; // Reset slider after sending         
-                            });
-                            sendSliderData(0);
-                          },
-                        ),
-                        const SizedBox(height: 19),
-                      ],   
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
