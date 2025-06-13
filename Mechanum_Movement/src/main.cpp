@@ -11,8 +11,8 @@ const int motorBR_R3 = 13;
 const int motorBR_L3 = 12;
 const int motorBL_R4 = 25;
 const int motorBL_L4 = 33; 
-const int Shooter = 35; 
-const int Tolak = 14; 
+const int Shooter = 14; 
+const int Tolak = 32; 
 String joystickX = "0";
 String joystickY = "0";
 int s = 2;
@@ -24,7 +24,7 @@ const char *password = "mechanum123";
 
 const float df = 0.1;
 
-const int MAX_PWM = 230;
+const int MAX_PWM = 200;
 
 WebServer server(80);
 
@@ -106,19 +106,23 @@ void setup() {
     Serial.printf("Shooter is pressed\n");
     server.send(200, "text/plain", "button1 value received.");
     digitalWrite(Shooter,HIGH);
-    delay(7000);
+    delay(6000);
+    digitalWrite(Tolak,HIGH);
+    delay(2000);
     digitalWrite(Tolak,LOW);
+    digitalWrite(Shooter,LOW);
+    
 
   });
 
-  server.on("/button2", []() {
+  /*server.on("/button2", []() {   moto tolak
     shooterDirection = 2;
     Serial.printf("Tolak is pressed\n");
     server.send(200, "text/plain", "button2 value received.");
     digitalWrite(Tolak,HIGH);
     delay(4000);
     digitalWrite(Tolak,LOW);
-  });
+  });*/
 
    /*server.on("/stop", []() {
     shooterDirection = 1;
