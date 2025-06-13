@@ -31,7 +31,10 @@ class _JoystickPageState extends State<JoystickPage> {
   double directionVal = 0;
   int lastX = 0;
   int lastY = 0;
-  bool motorValue = false;
+  int _elapsedSeconds = 0;
+  bool _timerRunning = false;
+
+  Timer? _gameTimer;
 
   // Send joystick x,y data
   void sendJoystickData(double x, double y) async {
@@ -55,24 +58,40 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
-  void sendShooterDirection(double val) async {
-    final url = Uri.parse('http://$esp32Ip/shooter?direction=$val');
+  void sendGameTime(int val) async {
+    final url = Uri.parse('http://$esp32Ip/gameTimer?time=$val');
     try {
       await http.get(url);
-      print('Shooter Direction sent');
+      print('Game time sent');
     } catch (e) {
-      print('Error sending shooter direction: $e');
+      print('Error sending game time: $e');
     }
   }
 
-  void sendShootValue() async {
-    final url = Uri.parse('http://$esp32Ip/shoot');
-    try {
-      await http.get(url);
-      print('Shoot command sent');
-    } catch (e) {
-      print('Error sending shoot command: $e');
+  void startGameTimer() {
+    if (_gameTimer != null && _gameTimer!.isActive) return; // Prevent multiple timers
+
+    _timerRunning = true;
+    _elapsedSeconds = 0;
+
+    _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_timerRunning) {
+        setState(() {
+          _elapsedSeconds++;
+          sendGameTime(_elapsedSeconds);
+        });
+      }
+    });
+  }
+
+  void stopGameTimer() {
+    if (_gameTimer != null) {
+      _elapsedSeconds = 0;
+      _gameTimer!.cancel();
+      _gameTimer = null;
+    
     }
+    _timerRunning = false;
   }
 
   @override
@@ -87,14 +106,23 @@ class _JoystickPageState extends State<JoystickPage> {
               children: [
                 Text(
                   'Basket Position = X: $lastX, Y: $lastY',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 8, width: 20),
+                Text(
+                  'Game Time: ${_elapsedSeconds}s',
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: stopGameTimer, 
+                  child: Text('Stop Timer')
+                ),
               ],
-            )
+              ),
           ),
 
-          // Main control row: joystick + slider + buttons
+          // Main control row: joystick + buttons
           Expanded(
             child: Row(
               children: [
@@ -115,7 +143,7 @@ class _JoystickPageState extends State<JoystickPage> {
                           sendJoystickData(0, 0);
                           return;
                         }
-
+                        startGameTimer(); // Start timer when joystick is used
                         sendJoystickData(x, y);
                       },
                     ),
