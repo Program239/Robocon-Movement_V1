@@ -26,10 +26,11 @@ class JoystickPage extends StatefulWidget {
 
 class _JoystickPageState extends State<JoystickPage> {
   String esp32Ip = '192.168.4.1'; // Default ESP32 IP
+  String espCameraIp = '192.168.4.2'; // Default camera IP
   final TextEditingController ipController = TextEditingController();
   double sliderValue = 0;
-
-
+  int lastX = 0;
+  int lastY = 0;
 
   // Send joystick x,y data
   void sendJoystickData(double x, double y) async {
@@ -57,6 +58,7 @@ class _JoystickPageState extends State<JoystickPage> {
     final url = Uri.parse('http://$esp32Ip/right');
     try {
       await http.get(url);
+      sendCameraData();
       print('Right sent');
     } catch (e) {
       print('Error sending button1 hold: $e');
@@ -67,6 +69,7 @@ class _JoystickPageState extends State<JoystickPage> {
     final url = Uri.parse('http://$esp32Ip/stop');
     try {
       await http.get(url);
+      sendCameraData();
       print('Stop sent');
     } catch (e) {
       print('Error sending button1 release: $e');
@@ -77,41 +80,40 @@ class _JoystickPageState extends State<JoystickPage> {
     final url = Uri.parse('http://$esp32Ip/left');
     try {
       await http.get(url);
+      sendCameraData();
       print('Left sent');
     } catch (e) {
       print('Error sending button1 hold: $e');
     }
   }
 
+  void sendCameraData() async {
+    final url = Uri.parse('http://$espCameraIp/camera?x=$lastX&y=$lastY');
+    try {
+      await http.get(url);
+      print('Sent camera coordinates: x=$lastX, y=$lastY');
+    } catch (e) {
+      print('Error sending camera command: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Robot Controller')),
       body: Column(
         children: [
-          // IP address input on top
           Padding(
             padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              controller: ipController,
-              decoration: InputDecoration(
-                labelText: 'Enter ESP32 IP Address',
-                border: OutlineInputBorder(),
-              ),
-              onSubmitted: (value) {
-                setState(() {
-                  esp32Ip = value;
-                });
-                print('IP Address updated to: $esp32Ip');
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('ESP32 IP updated to $esp32Ip'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Basket Position = X: $lastX, Y: $lastY',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+              ],
+            )
           ),
 
           // Main control row: joystick + slider + buttons
