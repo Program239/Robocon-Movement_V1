@@ -26,11 +26,12 @@ class JoystickPage extends StatefulWidget {
 
 class _JoystickPageState extends State<JoystickPage> {
   String esp32Ip = '192.168.4.1'; // Default ESP32 IP
-  String espCameraIp = '192.168.4.2'; // Default camera IP
   final TextEditingController ipController = TextEditingController();
-  double sliderValue = 0;
+  int rotationValue = 0;
+  double directionVal = 0;
   int lastX = 0;
   int lastY = 0;
+  bool motorValue = false;
 
   // Send joystick x,y data
   void sendJoystickData(double x, double y) async {
@@ -44,7 +45,7 @@ class _JoystickPageState extends State<JoystickPage> {
   }
 
   // Send slider (rotation) data
-  void sendSliderData(double val) async {
+  void sendRotationData(int val) async {
     final url = Uri.parse('http://$esp32Ip/rotation?val=$val');
     try {
       await http.get(url);
@@ -54,46 +55,23 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
-  void sendButton1Hold() async {
-    final url = Uri.parse('http://$esp32Ip/right');
+  void sendShooterDirection(double val) async {
+    final url = Uri.parse('http://$esp32Ip/shooter?direction=$val');
     try {
       await http.get(url);
-      sendCameraData();
-      print('Right sent');
+      print('Shooter Direction sent');
     } catch (e) {
-      print('Error sending button1 hold: $e');
+      print('Error sending shooter direction: $e');
     }
   }
 
-  void sendButtonRelease() async {
-    final url = Uri.parse('http://$esp32Ip/stop');
+  void sendShootValue() async {
+    final url = Uri.parse('http://$esp32Ip/shoot');
     try {
       await http.get(url);
-      sendCameraData();
-      print('Stop sent');
+      print('Shoot command sent');
     } catch (e) {
-      print('Error sending button1 release: $e');
-    }
-  }
-
-  void sendButton2Hold() async {
-    final url = Uri.parse('http://$esp32Ip/left');
-    try {
-      await http.get(url);
-      sendCameraData();
-      print('Left sent');
-    } catch (e) {
-      print('Error sending button1 hold: $e');
-    }
-  }
-
-  void sendCameraData() async {
-    final url = Uri.parse('http://$espCameraIp/camera?x=$lastX&y=$lastY');
-    try {
-      await http.get(url);
-      print('Sent camera coordinates: x=$lastX, y=$lastY');
-    } catch (e) {
-      print('Error sending camera command: $e');
+      print('Error sending shoot command: $e');
     }
   }
 
@@ -121,8 +99,10 @@ class _JoystickPageState extends State<JoystickPage> {
             child: Row(
               children: [
                 // Joystick on left
+                SizedBox(width: 20),
+
                 Expanded(
-                  flex: 3,
+                  flex: 1,
                   child: Center(
                     child: Joystick(
                       mode: JoystickMode.all,
@@ -141,8 +121,10 @@ class _JoystickPageState extends State<JoystickPage> {
                     ),
                   ),
                 ),
-                
-                // Buttons in the middle
+
+                SizedBox(width: 50),
+
+                // Rotation control on right
                 Expanded(
                   flex: 2,
                   child: Padding(
@@ -150,63 +132,47 @@ class _JoystickPageState extends State<JoystickPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Two buttons for future functions
-                        GestureDetector(
-                          onLongPressStart: (_) => sendButton1Hold(),
-                          onLongPressEnd: (_) => sendButtonRelease(),
-                          child: ElevatedButton(
-                            onPressed: sendButtonRelease,
-                            child: const Text('Right'),
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Left rotation button
+                            GestureDetector(
+                              onTapDown: (_) => sendRotationData(-1),
+                              onTapUp: (_) => sendRotationData(0),
+                              onTapCancel: () => sendRotationData(0),
+                              child: SizedBox(
+                                width: 200, // Set width
+                                height: 100, // Set height
+                                child: ElevatedButton(
+                                  onPressed: null, // Disabled to use GestureDetector
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(80, 50), // Minimum size
+                                  ),
+                                  child: Text('Left'),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 20),
+                            // Right rotation button
+                            GestureDetector(
+                              onTapDown: (_) => sendRotationData(1),
+                              onTapUp: (_) => sendRotationData(0),
+                              onTapCancel: () => sendRotationData(0),
+                              child: SizedBox(
+                                width: 200,
+                                height: 100,
+                                child: ElevatedButton(
+                                  onPressed: null,
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(80, 50),
+                                  ),
+                                  child: Text('Right'),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 20),
-                          GestureDetector(
-                          onLongPressStart: (_) => sendButton2Hold(),
-                          onLongPressEnd: (_) => sendButtonRelease(),
-                          child: ElevatedButton(
-                            onPressed: sendButtonRelease,
-                            child: const Text('Left'),
-                          ),
-                        ),
-                        
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Slider on right
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Vertical slider rotated
-                        RotatedBox(
-                          quarterTurns: -1,
-                          child: Slider(
-                            value: sliderValue,
-                            min: -1,
-                            max: 1,
-                            divisions: 100,
-                            label: sliderValue.toStringAsFixed(2),
-                            onChanged: (val) {
-                              setState(() {
-                                sliderValue = val;
-                              });
-                              sendSliderData(sliderValue);
-                            },
-                            onChangeEnd: (val) {
-                              // Send final value when slider is released
-                              setState(() {
-                                sliderValue = 0; // Reset slider after sending         
-                              });
-                              sendSliderData(0);
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 19),
                       ],   
                     ),
                   ),
