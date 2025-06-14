@@ -17,10 +17,13 @@ String joystickX = "0";
 String joystickY = "0";
 int s = 2;
 int shooterDirection = 0;
+bool shooterActive = false;
+unsigned long shooterStartTime = 0;
+int shooterStep = 0;
 
 
-const char *ssid = "mechanum";
-const char *password = "mechanum123";
+const char *ssid = "MFI mechanum";
+const char *password = "mechanumm111";
 
 const float df = 0.1;
 
@@ -71,6 +74,8 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.softAPIP());
 
+  WiFi.setTxPower(WIFI_POWER_19_5dBm); // Set WiFi power to maximum
+
   // Initialize pins
   pinMode(motorFR_R1, OUTPUT);
   pinMode(motorFR_L1, OUTPUT);
@@ -101,36 +106,29 @@ void setup() {
   server.send(404, "text/plain", "Not found");
   });
 
-  server.on("/button1", []() {
-    shooterDirection = 1;
-    Serial.printf("Shooter is pressed\n");
-    server.send(200, "text/plain", "button1 value received.");
-    digitalWrite(Shooter,HIGH);
-    delay(6000);
-    digitalWrite(Tolak,HIGH);
-    delay(2000);
-    digitalWrite(Tolak,LOW);
-    digitalWrite(Shooter,LOW);
-    
-
+  server.on("/shoot", []() {
+    if(!shooterActive){
+      shooterActive = true;
+      shooterStartTime = millis();
+      shooterStep = 0;
+      Serial.println("Shooter sequence started");
+      server.send(200, "text/plain", "shoot value received.");
+    } else {
+      Serial.println("Shooter sequence already active");
+      server.send(400, "text/plain", "Shooter sequence already active.");
+      return;
+    }
   });
 
-  /*server.on("/button2", []() {   moto tolak
-    shooterDirection = 2;
+  server.on("/rotation", []() {   
+    int shooterDirection = server.arg("val").toInt();
     Serial.printf("Tolak is pressed\n");
-    server.send(200, "text/plain", "button2 value received.");
+    server.send(200, "text/plain", "rotation value received.");
     digitalWrite(Tolak,HIGH);
     delay(4000);
     digitalWrite(Tolak,LOW);
-  });*/
+  });
 
-   /*server.on("/stop", []() {
-    shooterDirection = 1;
-    Serial.printf("Stop is pressed\n");
-    server.send(200, "text/plain", "Stop value received.");
-    digitalWrite(Shooter, LOW);
-    digitalWrite(Tolak, LOW);
-  });*/
 
   server.begin(); // <-- This line was misplaced before. Now it's correctly placed outside the handler.
 
@@ -138,11 +136,10 @@ void setup() {
 void loop() {
    float stickY = joystickY.toFloat();
    float stickX = joystickX.toFloat();
-   //float stickRx = joystick.toFloat();
+   float stickRx = shooterDirection - 0.1;
    float vFR, vFL, vBR, vBL;
 
-  
-    computeWheelSpeeds(stickY, stickX, 0, vFR, vFL, vBR, vBL);
+    computeWheelSpeeds(stickY, stickX, stickRx, vFR, vFL, vBR, vBL);
     setMotor(motorFR_L1, motorFR_R1, vFR);
     setMotor(motorFL_L2, motorFL_R2, vFL);
     setMotor(motorBR_L3, motorBR_R3, vBR);
@@ -157,6 +154,35 @@ void loop() {
     Serial.print(F("\tvBL: \n"));
     Serial.print(vBL);*/
     //Serial.print(F("\tSpeed: "));
+
+    if (shooterActive) {
+      unsigned long currentTime = millis();
+      switch (shooterStep) {
+        case 0: // Initial step
+          digitalWrite(Shooter, HIGH);
+          Serial.println("Shooter motor started");
+          shooterStep = 1;
+          shooterStartTime = currentTime; // Reset the start time
+          break;
+        case 1: // Wait for 6 seconds
+          if (currentTime - shooterStartTime >= 6000) {
+            digitalWrite(Tolak, HIGH);
+            Serial.println("Shooter motor stopped after 6 seconds");
+            shooterStep = 2;
+            shooterStartTime = currentTime; // Reset the start time for the next step
+          }
+          break;
+        case 2: // Final step
+          if (currentTime - shooterStartTime >= 2000) {
+            digitalWrite(Tolak, LOW);
+            digitalWrite(Shooter, LOW);
+            Serial.println("Shooter sequence completed, motors stopped");
+            shooterActive = false; // Reset the state
+            shooterStep = 3; // Move to the next step
+          }
+          break;
+      }
+    }
 
  server.handleClient();
 
