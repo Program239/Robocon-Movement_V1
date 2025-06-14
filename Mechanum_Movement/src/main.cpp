@@ -19,8 +19,8 @@ int s = 2;
 int shooterDirection = 0;
 
 
-const char *ssid = "mechanum";
-const char *password = "mechanum123";
+const char *ssid = "MFI-Master";
+const char *password = "MFIRobocon2025";
 
 const float df = 0.1;
 
@@ -60,16 +60,31 @@ void setMotor(int pinA, int pinB, float speed) {
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  WiFi.softAP(ssid, password);
-  Serial.print("Initiating WiFi AP: ");
+
+  WiFi.mode(WIFI_STA);
+
+  // Set static IP configuration
+  IPAddress local_IP(192, 168, 4, 102);      // Change as needed
+  IPAddress gateway(192, 168, 4, 1);         // Change as needed
+  IPAddress subnet(255, 255, 255, 0);      // Change as needed
+  IPAddress primaryDNS(8, 8, 8, 8);          // Optional
+  IPAddress secondaryDNS(8, 8, 4, 4);        // Optional
+
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
+  }
+  
+  WiFi.mode(WIFI_AP);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi: ");
   Serial.print(ssid);
-  while (WiFi.softAPgetStationNum() == 0) {
-    delay(100);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
     Serial.print(".");
   }
-  Serial.println("\nWiFi AP started successfully");
+  Serial.println("\nWiFi Connected successfully");
   Serial.print("IP address: ");
-  Serial.println(WiFi.softAPIP());
+  Serial.println(WiFi.localIP());
 
   // Initialize pins
   pinMode(motorFR_R1, OUTPUT);

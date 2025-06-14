@@ -63,9 +63,9 @@ void setup() {
   WiFi.mode(WIFI_STA);
 
   // Set static IP configuration
-  IPAddress local_IP(192, 168, 4, 100);      // Change as needed
+  IPAddress local_IP(192, 168, 4, 101);      // Change as needed
   IPAddress gateway(192, 168, 4, 1);         // Change as needed
-  IPAddress subnet(255, 255, 255, 0);        // Change as needed
+  IPAddress subnet(255, 255, 255, 0);      // Change as needed
   IPAddress primaryDNS(8, 8, 8, 8);          // Optional
   IPAddress secondaryDNS(8, 8, 4, 4);        // Optional
 
