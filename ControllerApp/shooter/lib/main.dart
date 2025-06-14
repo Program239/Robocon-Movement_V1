@@ -24,7 +24,7 @@ class JoystickPage extends StatefulWidget {
 }
 
 class _JoystickPageState extends State<JoystickPage> {
-  String esp32Ip = '192.168.4.1'; // Default ESP32 IP
+  String esp32Ip = '192.168.4.101'; // Default ESP32 IP
   final TextEditingController ipController = TextEditingController();
   double sliderValue = 0;
   double netValue = 0;
