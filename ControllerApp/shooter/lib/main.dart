@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -24,13 +25,17 @@ class JoystickPage extends StatefulWidget {
 }
 
 class _JoystickPageState extends State<JoystickPage> {
-  String esp32Ip = '192.168.4.101'; // Default ESP32 IP
+  String esp32Ip = '192.168.4.103'; // Default ESP32 IP
   final TextEditingController ipController = TextEditingController();
   double sliderValue = 0;
   double netValue = 0;
   int lastX = 0;
   int lastY = 0;
+  int _elapsedSeconds = 0;
   bool motorValue = false;
+  bool _timerRunning = false;
+
+  Timer? _gameTimer;
   Timer? _cameraTimer;
 
   @override
@@ -69,12 +74,21 @@ class _JoystickPageState extends State<JoystickPage> {
   }
 
   void sendCameraData() async {
-    final url = Uri.parse('http://$esp32Ip/camera?x=$lastX&y=$lastY');
+    final url = Uri.parse('http://$esp32Ip/camera');
     try {
-      await http.get(url);
-      print('Sent camera coordinates: x=$lastX, y=$lastY');
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          lastX = data['x'] ?? lastX;
+          lastY = data['y'] ?? lastY;
+        });
+        print('Received camera coordinates: x=$lastX, y=$lastY');
+      } else {
+        print('Failed to get camera data: ${response.statusCode}');
+      }
     } catch (e) {
-      print('Error sending camera command: $e');
+      print('Error reading camera coordinates: $e');
     }
   }
   
@@ -97,6 +111,7 @@ class _JoystickPageState extends State<JoystickPage> {
       print('Error sending shoot command: $e');
     }
   }
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -112,18 +127,26 @@ class _JoystickPageState extends State<JoystickPage> {
               children: [
                 Text(
                   'Basket Position = X: $lastX, Y: $lastY',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 8, width: 20),
+                Text(
+                  'Game Time: ${_elapsedSeconds}s',
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: stopGameTimer, 
+                  child: Text('Stop Timer')
+                ),
               ],
-            )
+              ),
           ),
           
           // Main control row: joystick + slider + buttons
           Expanded(
             child: Row(
-              children: [
-                const SizedBox(width: 20), // Add some space on the left
+              children: [ // Add some space on the left
                 // Buttons on left
                 Expanded(
                   child: Padding(
@@ -153,10 +176,9 @@ class _JoystickPageState extends State<JoystickPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
                         //Shooter Rotation Buttons
                         Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           // Left rotation button
                           GestureDetector(
@@ -175,7 +197,6 @@ class _JoystickPageState extends State<JoystickPage> {
                               ),
                             ),
                           ),
-                          SizedBox(width: 60),
                           // Right rotation button
                           GestureDetector(
                             onTapDown: (_) => sendShooterDirection(1),
@@ -195,7 +216,6 @@ class _JoystickPageState extends State<JoystickPage> {
                           ),
                         ],
                       ),
-                        const SizedBox(height: 20),
                       
                       // Net Down Button
                       Row(
@@ -219,7 +239,6 @@ class _JoystickPageState extends State<JoystickPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 30),
                       ],
                     ),
                   ),
@@ -234,7 +253,7 @@ class _JoystickPageState extends State<JoystickPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             SizedBox(
                               height: 130,
@@ -260,7 +279,6 @@ class _JoystickPageState extends State<JoystickPage> {
                               ),
                             ),
                             
-                            const SizedBox(width: 20),
                             SizedBox(
                               width: 130, // Set width
                               height: 80, // Set height
@@ -271,7 +289,6 @@ class _JoystickPageState extends State<JoystickPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
                       ],
                     ),
                   ),

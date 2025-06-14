@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -35,6 +36,21 @@ class _JoystickPageState extends State<JoystickPage> {
   bool _timerRunning = false;
 
   Timer? _gameTimer;
+  Timer? _cameraTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _cameraTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      sendCameraData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _cameraTimer?.cancel();
+    super.dispose();
+  }
 
   // Send joystick x,y data
   void sendJoystickData(double x, double y) async {
@@ -92,6 +108,25 @@ class _JoystickPageState extends State<JoystickPage> {
     
     }
     _timerRunning = false;
+  }
+
+  void sendCameraData() async {
+    final url = Uri.parse('http://$esp32Ip/camera');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          lastX = data['x'] ?? lastX;
+          lastY = data['y'] ?? lastY;
+        });
+        print('Received camera coordinates: x=$lastX, y=$lastY');
+      } else {
+        print('Failed to get camera data: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error reading camera coordinates: $e');
+    }
   }
 
   @override
