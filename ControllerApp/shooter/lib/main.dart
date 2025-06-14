@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
 }
 
 class JoystickPage extends StatefulWidget {
-  JoystickPage({super.key});
+  const JoystickPage({super.key});
 
   @override
   _JoystickPageState createState() => _JoystickPageState();
@@ -45,17 +45,6 @@ class _JoystickPageState extends State<JoystickPage> {
   void dispose() {
     _cameraTimer?.cancel();
     super.dispose();
-  }
-
-  // Send joystick x,y data
-  void sendJoystickData(double x, double y) async {
-    final url = Uri.parse('http://$esp32Ip/joystick?x=$x&y=$y');
-    try {
-      await http.get(url);
-      print('Sent joystick data: x=$x, y=$y');
-    } catch (e) {
-      print('Error sending joystick data: $e');
-    }
   }
 
   // Send slider (rotation) data
