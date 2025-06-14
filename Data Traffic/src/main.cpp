@@ -3,7 +3,7 @@
 #include <WebServer.h>
 
 const char *ssid = "MFI-Master";
-const char *password = "1234567890";
+const char *password = "MFIRobocon2025";
 
 WebServer server(80);
 
