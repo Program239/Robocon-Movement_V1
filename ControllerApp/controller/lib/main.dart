@@ -74,6 +74,16 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
+  void sendShootData() async {
+    final url = Uri.parse('http://$esp32Ip/shoot');
+    try {
+      await http.get(url);
+      print('Shoot command sent');
+    } catch (e) {
+      print('Error sending shoot command: $e');
+    }
+  }
+
   void sendGameTime(int val) async {
     final url = Uri.parse('http://$esp32Ip/gameTimer?time=$val');
     try {
@@ -161,9 +171,6 @@ class _JoystickPageState extends State<JoystickPage> {
           Expanded(
             child: Row(
               children: [
-                // Joystick on left
-                SizedBox(width: 20),
-
                 Expanded(
                   flex: 1,
                   child: Center(
@@ -185,13 +192,11 @@ class _JoystickPageState extends State<JoystickPage> {
                   ),
                 ),
 
-                SizedBox(width: 50),
-
                 // Rotation control on right
                 Expanded(
-                  flex: 2,
+                  flex: 1,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -200,11 +205,33 @@ class _JoystickPageState extends State<JoystickPage> {
                           children: [
                             // Left rotation button
                             GestureDetector(
+                              onTapDown: (_) => sendShootData(),
+                              child: SizedBox(
+                                width: 150, // Set width
+                                height: 100, // Set height
+                                child: ElevatedButton(
+                                  onPressed: null, // Disabled to use GestureDetector
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(80, 50), // Minimum size
+                                  ),
+                                  child: Text('Shoot'),
+                                ),
+                              ),
+                            ),
+                            // Right rotation button
+                          ],
+                        ),
+                        
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // Left rotation button
+                            GestureDetector(
                               onTapDown: (_) => sendRotationData(-1),
                               onTapUp: (_) => sendRotationData(0),
                               onTapCancel: () => sendRotationData(0),
                               child: SizedBox(
-                                width: 200, // Set width
+                                width: 150, // Set width
                                 height: 100, // Set height
                                 child: ElevatedButton(
                                   onPressed: null, // Disabled to use GestureDetector
@@ -215,14 +242,13 @@ class _JoystickPageState extends State<JoystickPage> {
                                 ),
                               ),
                             ),
-                            SizedBox(width: 20),
                             // Right rotation button
                             GestureDetector(
                               onTapDown: (_) => sendRotationData(1),
                               onTapUp: (_) => sendRotationData(0),
                               onTapCancel: () => sendRotationData(0),
                               child: SizedBox(
-                                width: 200,
+                                width: 150,
                                 height: 100,
                                 child: ElevatedButton(
                                   onPressed: null,
@@ -235,7 +261,13 @@ class _JoystickPageState extends State<JoystickPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(width: 150,height: 90),
+                          ],
+                        ),
                       ],   
                     ),
                   ),
