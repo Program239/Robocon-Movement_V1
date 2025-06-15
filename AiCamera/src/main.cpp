@@ -31,9 +31,8 @@ bool tolakRetractActive = false;
 
 WebServer server(80);
 
-const char *ssid = "CameraBot";
-const char *ssid = "CameraBot";
-const char *password = "1234567890";
+const char *ssid = "MFI-Master";
+const char *password = "MFIRobocon2025";
 
 const int GreenLED = 5; // GPIO pin for Green LED
 const int RedLED = 4;   // GPIO pin for Red LED
@@ -64,17 +63,29 @@ void setup() {
   Serial.begin(115200);
   Wire.begin(21, 22);  // ESP32 default pins
 
-WiFi.softAP(ssid, password);
-  Serial.print("Initiating WiFi AP: ");
+  WiFi.mode(WIFI_STA);
+
+  // Set static IP configuration
+  IPAddress local_IP(192, 168, 4, 101);      // Change as needed
+  IPAddress gateway(192, 168, 4, 1);         // Change as needed
+  IPAddress subnet(255, 255, 255, 0);      // Change as needed
+  IPAddress primaryDNS(8, 8, 8, 8);          // Optional
+  IPAddress secondaryDNS(8, 8, 4, 4);        // Optional
+
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
+  }
+  
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi: ");
   Serial.print(ssid);
-  while (WiFi.softAPgetStationNum() == 0) {
+  while (WiFi.status() != WL_CONNECTED) {
     delay(100);
     Serial.print(".");
   }
-  Serial.println("\nWiFi AP started successfully");
-  Serial.println("\nWiFi AP started successfully");
+  Serial.println("\nWiFi connected successfully");
   Serial.print("IP address: ");
-  Serial.println(WiFi.softAPIP());
+  Serial.println(WiFi.localIP());
 
   delay(100); // Let everything stabilize
 
