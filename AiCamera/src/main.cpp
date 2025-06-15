@@ -5,24 +5,25 @@
 #include <WebServer.h>
 
 // Pin definitions (same as yours)
-const int Shooter = 23; 
-const int Tolak1 = 18; 
-const int Tolak2 = 19; 
+const int Shooter = 23;
+const int Tolak1 = 18;
+const int Tolak2 = 19;
 const int rightTurn = 25;
 const int leftTurn = 26;
 const int rightNet = 27;
 const int leftNet = 14;
-const int limitTolak1 = 34;
-const int limitTolak2 = 35;
-const int limitNet1 = 32;
-const int limitNet2 = 33;
+const int lowerLimitpusher = 34;
+const int upperLimitpusher = 35;
+const int upperLimitnet = 33;
+const int lowerLimitnet = 32;
+
 String slider = "0";
 int turnDirection = 0;
 int shooterDirection = 0;
-int netDirection = 0;
+int netUPDOWN = 0;
+int shootSpeed = 0; 
 int tolakDirection = 0;
-int button1State = 0;
-int button2State = 0;
+int netDirection = 0;
 bool netMotorRightActive = false;
 bool netMotorLeftActive = false;
 bool tolakExtendActive = false;
@@ -30,12 +31,27 @@ bool tolakRetractActive = false;
 
 WebServer server(80);
 
-const char *ssid = "ESP32-TOP";
+const char *ssid = "CameraBot";
 const char *password = "1234567890";
 
-/*HUSKYLENS huskylens;
+const int GreenLED = 5; // GPIO pin for Green LED
+const int RedLED = 4;   // GPIO pin for Red LED
 
-int lastX = -1, lastY = -1;*/
+String heightMin = "0";
+String heightMax = "0";
+String widthMin  = "0";
+String widthMax  = "0";
+String xMin      = "0";
+String xMax      = "0";
+String yMin      = "0";
+String yMax      = "0";
+
+HUSKYLENS huskylens;
+
+int lastX = -1;
+int lastY = -1;
+int lastHeight = -1;
+int lastWidth = -1;
 
 void setMotor(int pinA, int pinB, float speed) {
   int pwm = abs(speed * 255.0);
@@ -43,11 +59,12 @@ void setMotor(int pinA, int pinB, float speed) {
 }
 
 void setup() {
+  
+  
   Serial.begin(115200);
   Wire.begin(21, 22);  // ESP32 default pins
 
-  // put your setup code here, to run once:
-  WiFi.softAP(ssid, password);
+WiFi.softAP(ssid, password);
   Serial.print("Initiating WiFi AP: ");
   Serial.print(ssid);
   while (WiFi.softAPgetStationNum() == 0) {
@@ -61,10 +78,10 @@ void setup() {
   delay(100); // Let everything stabilize
 
   
-  /*while (!huskylens.begin(Wire)) {
+  while (!huskylens.begin(Wire)) {
     Serial.println("Begin failed");
     delay(1000);  // Prevent watchdog resets
-  }*/
+  }
 
   delay(1000); // Allow HuskyLens to initialize
 
@@ -76,135 +93,119 @@ void setup() {
   pinMode(Tolak2, OUTPUT);
   pinMode(rightNet, OUTPUT);
   pinMode(leftNet, OUTPUT);
-  pinMode(limitTolak1, INPUT_PULLUP);
-  pinMode(limitTolak2, INPUT_PULLUP);
-  pinMode(limitNet1, INPUT_PULLUP);
-  pinMode(limitNet2, INPUT_PULLUP);
+  pinMode(upperLimitnet, INPUT_PULLUP);
+  pinMode(lowerLimitnet, INPUT_PULLUP);
+  pinMode(upperLimitpusher, INPUT_PULLUP);
+  pinMode(lowerLimitpusher, INPUT_PULLUP);
+  digitalWrite(Shooter, LOW);
+  digitalWrite(Tolak1, LOW);
+  digitalWrite(Tolak2, LOW);
+  digitalWrite(rightTurn, LOW);
+  digitalWrite(leftTurn, LOW);
+  digitalWrite(rightNet, LOW);
+  digitalWrite(leftNet, LOW);
+  pinMode(GreenLED, OUTPUT);
+  pinMode(RedLED, OUTPUT);
+  
 
-  /*server.on("/camera", HTTP_GET, []() {
-      String response = "/camera?x=" + String(lastX) + "&y=" + String(lastY);
+  server.on("/camera", HTTP_GET, []() {
+      String response = "/camera?x=" + String(lastX) + "&y=" + String(lastY) + "&width=" + String(lastWidth) + "&height=" + String(lastHeight);
       server.sendHeader("Location", response);
       server.send(200, "text/plain", response);
-    });/*
-  
+    });
+
   server.on("/", []() {
     server.send(200, "text/plain", "ESP32 is running!");
   });
-
-  /*server.on("/button3", []() {
-    
-    button1State = 1;
-    Serial.printf("Shooter is pressed\n");
-    server.send(200, "text/plain", "button1 value received.");
-    digitalWrite(Shooter,HIGH);
-    delay(9000);
-    digitalWrite(Shooter,LOW);
-
-  });
-
-  server.on("/button2", []() {
-    button2State = 1;
-    Serial.printf("Tolak is pressed\n");
-    server.send(200, "text/plain", "button2 value received.");
-    digitalWrite(Tolak1,HIGH);
-    delay(3000);
-    digitalWrite(Tolak1,LOW);
-  });
-
-  server.on("/rotation", []() {
-  slider = server.arg("val");  
-  int rotation = slider.toInt();  
-
-  if (rotation == 1) {
-    digitalWrite(leftTurn,LOW);
-    digitalWrite(rightTurn,HIGH);
-    Serial.println("Right rotation");
-  } else if (rotation == -1) {
-    digitalWrite(leftTurn,HIGH);
-    digitalWrite(rightTurn,LOW);
-    Serial.println("Left rotation");
-  } else if (rotation == 0) {
-    digitalWrite(rightTurn,LOW);
-    digitalWrite(leftTurn,LOW);
-    Serial.println("Stop rotation");
-  }
-
-  server.send(200, "text/plain", "Slider value processed.");
-});
-
-server.on("/right", []() {
-    if (digitalRead(limitNet1) == LOW) {
-    shooterDirection = 1; // Right
-    netMotorRightActive = true;
-    Serial.println("Net UP");
-    }
-  });
-
-  server.on("/left", []() {
-    if (digitalRead(limitNet2) == LOW) {
-    shooterDirection = 2; // Right
-    netMotorLeftActive = true;
-    Serial.println("Net DOWN");
-    }
-  });
-
-    server.on("/net", []() {
-    int netDirection = server.arg("val").toInt();
-    if (netDirection == 1) {
-      Serial.println("Net direction: Up");
-    } else if (netDirection == -1) {
-      Serial.println("Net direction: Down");
-    } else {
-      Serial.println("Net direction: Stop");
-    }
-  });*/
 
   server.on("/shooter", []() { //turntable
     int shooterDirection = server.arg("direction").toInt();
     if (shooterDirection == 1) {
       Serial.println("Shooter direction: Right");
-      turnDirection = 1; // Right
+      turnDirection = 1;
     } else if (shooterDirection == -1) {
       Serial.println("Shooter direction: Left");
-      turnDirection = 2; // Left
-    } else {
+      turnDirection = 2;
+    } else if (shooterDirection == 0) {
       Serial.println("Shooter direction: Stop");
-      turnDirection = 0; // Stop
+      turnDirection = 0;
     }
   });
 
-  server.on("/motor", []() {  //net
+   server.on("/net", []() { // net direction
+    int netDirection = server.arg("val").toInt();
+    if (netDirection == 1 && digitalRead(upperLimitnet) == LOW) {
+      netUPDOWN = 1;
+      netMotorRightActive = true;
+      Serial.println("Net direction: Up");
+    } else if (netDirection == -1 && digitalRead(lowerLimitnet) == LOW) {
+      netUPDOWN = 2;
+      netMotorLeftActive = true;
+      Serial.println("Net direction: Down");
+    } else if (netDirection == 0) {
+      netUPDOWN = 0;
+      netMotorRightActive = false;
+      Serial.println("Net direction: Stop");
+    }
+  });
+  
+server.on("/motor", []() {  // shooter
     int motorState = server.arg("value").toInt();
-    if (motorState == 1) 
-    if (digitalRead(limitNet1) == LOW) {
-    netDirection= 1; // Right
-    netMotorRightActive = true;
-    Serial.println("Net UP");
+    if (motorState == 1 ) {
+      shootSpeed = 1;
+      Serial.println("Shooter ON");
+
+    } else if (motorState == 0) {
+      shootSpeed = 0;
+      Serial.println("Shooter OFF");
     }
   });
 
-/*  server.on("/motor", []() {  //tolak
-    int motorState = server.arg("value").toInt();
-    if (motorState == 1) 
-    if (digitalRead(limitTolak1) == LOW) {
-    tolakDirection= 1; // Right
-    netMotorRightActive = true;
-    Serial.println("Net UP");
+  server.on("/shoot", []() {
+    Serial.println("Shoot command received");
+    if (shooterDirection == 1 && digitalRead(upperLimitpusher) == LOW) {
+    //digitalWrite(Shooter, HIGH);
+      tolakDirection = 1; // Extend
+      tolakExtendActive = true;
+      Serial.println("Shooter direction: Extend");
+    
     }
-  });*/
-
-  server.on("/shoot", []() { //shooter
-    Serial.println("Shoot command received");  
-    shooterDirection = 1; // Activate shooter    
   });
 
-  /*server.begin();
-  huskylens.writeAlgorithm(ALGORITHM_OBJECT_TRACKING);*/
+  server.on("/set_params", HTTP_GET, []() {
+  heightMin = server.arg("heightMin");
+  heightMax = server.arg("heightMax");
+  widthMin  = server.arg("widthMin");
+  widthMax  = server.arg("widthMax");
+  xMin      = server.arg("xMin");
+  xMax      = server.arg("xMax");
+  yMin      = server.arg("yMin");
+  yMax      = server.arg("yMax");
+
+  /*// Example: Print to Serial for debugging
+  Serial.println("Received parameters:");
+  Serial.println("heightMin: " + heightMin);
+  Serial.println("heightMax: " + heightMax);
+  Serial.println("widthMin: "  + widthMin);
+  Serial.println("widthMax: "  + widthMax);
+  Serial.println("xMin: "      + xMin);
+  Serial.println("xMax: "      + xMax);
+  Serial.println("yMin: "      + yMin);
+  Serial.println("yMax: "      + yMax);
+  */
+
+  // TODO: Use these values in your logic
+
+  server.send(200, "text/plain", "Parameters received");
+});
+
+  server.begin();
+  huskylens.writeAlgorithm(ALGORITHM_OBJECT_TRACKING);
 }
 
 void loop() {
 
- /* if (huskylens.request()) {
+  if (huskylens.request()) {
     if (huskylens.available()) {
       HUSKYLENSResult result = huskylens.read();
 
@@ -212,91 +213,158 @@ void loop() {
         Serial.printf("Moved: X=%d, Y=%d\n", result.xCenter, result.yCenter);
         lastX = result.xCenter;
         lastY = result.yCenter;
+        lastHeight = result.height;
+        lastWidth = result.width;
+
       } else {
         //Serial.println("Same position, maybe not tracking?");
       }
     }
   } else {
   Serial.println("No data from HuskyLens");
-  }*/
+  }
 
-  if  (netMotorRightActive && digitalRead(limitNet1) == HIGH) {  // LOW = pressed
-    shooterDirection = 0;
+  if (lastHeight <= heightMax.toInt() && lastHeight >= heightMin.toInt() && lastWidth <= widthMax.toInt() && lastWidth >= widthMin.toInt()) {
+    digitalWrite(GreenLED, HIGH);
+  } else {
+    digitalWrite(GreenLED, LOW);
+  }
+
+  if (lastX <= xMax.toInt() && lastX >= xMin.toInt() && lastY <= yMax.toInt() && lastY >= yMin.toInt()) {
+    digitalWrite(RedLED, HIGH);
+  } else {
+    digitalWrite(RedLED, LOW);
+  }
+
+  if (netMotorRightActive && digitalRead(upperLimitnet) == HIGH) {
+    netUPDOWN = 0;
     netMotorRightActive = false;
-    Serial.println("Limit1 triggered while moving — motor stopped.");
+    Serial.println("Upper limit triggered — Net motor stopped.");
   }
-  if  (netMotorLeftActive && digitalRead(limitNet2) == HIGH) {  // LOW = pressed
-    shooterDirection = 0;
+
+  if (netMotorLeftActive && digitalRead(lowerLimitnet) == HIGH) {
+    netUPDOWN = 0;
     netMotorLeftActive = false;
-    Serial.println("Limit2 triggered while moving — motor stopped.");
+    Serial.println("Lower limit triggered — Net motor stopped.");
   }
-  
-  if  (tolakRetractActive && digitalRead(limitTolak1) == HIGH) {  // LOW = pressed
+
+  if (tolakRetractActive && digitalRead(lowerLimitpusher) == HIGH) {
     tolakDirection = 0;
     tolakRetractActive = false;
-    Serial.println("Limit3 triggered while moving — motor stopped.");
+    Serial.println("Limit3 triggered — Tolak stopped.");
   }
 
-  if  (tolakExtendActive && digitalRead(limitTolak2) == HIGH) {  // LOW = pressed
+  if (tolakExtendActive && digitalRead(upperLimitpusher) == HIGH) {
     tolakDirection = 0;
     tolakExtendActive = false;
-    Serial.println("Limit4 triggered while moving — motor stopped.");
-  }
-  switch (netDirection) {
-    case 0: // Stop
-      setMotor(rightNet, leftNet, 0.0);
-      break;
-    case 1: // Right
-      setMotor(rightNet, leftNet, 1);
-      break;
-    case 2: // Left
-      setMotor(rightNet, leftNet, -1);
-      break;
-    default:
-      setMotor(rightNet, leftNet, 0.0);
-      break;
+    Serial.println("Limit4 triggered — Tolak stopped.");
+    delay(1000);
+    tolakDirection = 2; // Retract
+    Serial.println("Tolak direction: Retract");
   }
 
-  switch (tolakDirection) {
-    case 0: // Stop
-      setMotor(Tolak1, Tolak2, 0.0);
-      break;
-    case 1: // Right
-      setMotor(Tolak1, Tolak2, 1);
-      break;
-    case 2: // Left
-      setMotor(Tolak1, Tolak2, -1);
-      break;
-    default:
-      setMotor(Tolak1, Tolak2, 0.0);
-      break;
-  }
+  // Handle movement logic
+  /*switch (netUPDOWN) {
+    case 0: setMotor(rightNet, leftNet, 0.0); break;
+    case 1: setMotor(rightNet, leftNet, 1); break;
+    case 2: setMotor(rightNet, leftNet, -1); break;
+    default: setMotor(rightNet, leftNet, 0.0); break;
+  }*/
+
+  switch (netUPDOWN) {
+  case 0: // Stop
+    digitalWrite(rightNet, LOW);
+    digitalWrite(leftNet, LOW);
+    break;
+
+  case 1: // Net Up
+    digitalWrite(rightNet, LOW);
+    digitalWrite(leftNet, HIGH);
+    break;
+
+  case 2: // Net Down
+    digitalWrite(rightNet, HIGH);
+    digitalWrite(leftNet, LOW);
+    break;
+
+  default: // Fallback to stop
+    digitalWrite(rightNet, LOW);
+    digitalWrite(leftNet, LOW);
+    break;
+}
+
+
+  /*switch (tolakDirection) { //for motodriver
+    case 0: setMotor(Tolak1, Tolak2, 0.0); break;
+    case 1: setMotor(Tolak1, Tolak2, 1); break;
+    case 2: setMotor(Tolak1, Tolak2, -1); break;
+    default: setMotor(Tolak1, Tolak2, 0.0); break;
+  }*/
+
+switch (tolakDirection) {
+  case 0: // Stop
+    digitalWrite(Tolak1, LOW);
+    digitalWrite(Tolak2, LOW);
+    break;
+
+  case 1: // Extend (or right)
+    digitalWrite(Tolak1, HIGH);
+    digitalWrite(Tolak2, LOW);
+    break;
+
+  case 2: // Retract (or left)
+    digitalWrite(Tolak1, LOW);
+    digitalWrite(Tolak2, HIGH);
+    break;
+
+  default: // Fallback to stop
+    digitalWrite(Tolak1, LOW);
+    digitalWrite(Tolak2, LOW);
+    break;
+}
+
+
+  /*switch (turnDirection) { //for motodriver
+    case 0: setMotor(rightTurn, leftTurn, 0.0); break;
+    case 1: setMotor(rightTurn, leftTurn, 1); break;
+    case 2: setMotor(rightTurn, leftTurn, -1); break;
+    default: setMotor(rightTurn, leftTurn, 0.0); break;
+  }*/
 
   switch (turnDirection) {
-    case 0: // Stop
-      setMotor(rightTurn, leftTurn, 0.0);
-      break;
-    case 1: // Right
-      setMotor(rightTurn, leftTurn, 1);
-      break;
-    case 2: // Left
-      setMotor(rightTurn, leftTurn, -1);
-      break;
-    default:
-      setMotor(rightTurn, leftTurn, 0.0);
-      break;
-  }
+  case 0: // Stop
+    digitalWrite(rightTurn, LOW);
+    digitalWrite(leftTurn, LOW);
+    break;
 
-  switch (shooterDirection) {
-    case 0: // Stop
-      digitalWrite (Shooter, LOW);
-      break;
-    case 1: // Right
-      digitalWrite (Shooter, HIGH);
-      break;
-    default:
-      digitalWrite (Shooter, LOW);
-      break;
+  case 1: // Right turn
+    digitalWrite(rightTurn, HIGH);
+    digitalWrite(leftTurn, LOW);
+    break;
+
+  case 2: // Left turn
+    digitalWrite(rightTurn, LOW);
+    digitalWrite(leftTurn, HIGH);
+    break;
+
+  default: // Fallback to stop
+    digitalWrite(rightTurn, LOW);
+    digitalWrite(leftTurn, LOW);
+    break;
+}
+
+
+  /*switch (shooterDirection) {//for relay
+    case 0: digitalWrite(Shooter, LOW); break;
+    case 1: digitalWrite(Shooter, HIGH); break;
+    default: digitalWrite(Shooter, LOW); break;
+  }*/
+
+  switch (shootSpeed) {
+  case 0: setMotor(rightTurn, leftTurn, 0.0); break;
+  case 1: setMotor(rightTurn, leftTurn, 1); break;
+  case 2: setMotor(rightTurn, leftTurn, -1); break;
+  default: setMotor(rightTurn, leftTurn, 0.0); break;
   }
 
   server.handleClient();
