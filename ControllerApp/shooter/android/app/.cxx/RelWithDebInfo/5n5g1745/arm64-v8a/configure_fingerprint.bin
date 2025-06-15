@@ -2,6 +2,7 @@ C/C++ Structured Log‘
 Ž
 ‹D:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\additional_project_files.txtC
 A
+<<<<<<< HEAD
 ?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	øóš÷2 †Ú‰÷2Ž
 ‹
 ˆD:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\android_gradle_build.json	øóš÷2	 ‰Ú‰÷2“
@@ -26,3 +27,29 @@ zD:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\Re
 †D:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\symbol_folder_index.txt	øóš÷2} ‘Ú‰÷2^
 \
 ZD:\Visual Studio Code\flutter\packages\flutter_tools\gradle\src\main\groovy\CMakeLists.txt	øóš÷2§ „Í¹Íê2
+=======
+?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	Ÿšð×ö2 ƒšð×ö2Ž
+‹
+ˆD:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\android_gradle_build.json	Ÿšð×ö2	 Œšð×ö2“
+
+D:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\android_gradle_build_mini.json	Ÿšð×ö2ç –šð×ö2~
+|
+zD:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\build.ninja	Ÿšð×ö2¯Ù þ˜ð×ö2ƒ
+€
+~D:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\build.ninja.txt	Ÿšð×ö2‰
+†
+ƒD:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\build_file_index.txt	Ÿšð×ö2Z ššð×ö2Š
+‡
+„D:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\compile_commands.json	Ÿšð×ö2Ž
+‹
+ˆD:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\compile_commands.json.bin	Ÿšð×ö2	”
+‘
+ŽD:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\metadata_generation_command.txt	Ÿšð×ö2
+Ï	 ˜šð×ö2‡
+„
+D:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\prefab_config.json	Ÿšð×ö2( ™šð×ö2Œ
+‰
+†D:\Visual Studio Code\Robocon2025_MFI\ControllerApp\shooter\android\app\.cxx\RelWithDebInfo\5n5g1745\arm64-v8a\symbol_folder_index.txt	Ÿšð×ö2} ™šð×ö2^
+\
+ZD:\Visual Studio Code\flutter\packages\flutter_tools\gradle\src\main\groovy\CMakeLists.txt	Ÿšð×ö2§ „Í¹Íê2
+>>>>>>> d0db1e61f9f2619761e6ce0f9f1d19b1907febf2
