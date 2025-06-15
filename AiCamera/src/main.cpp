@@ -89,11 +89,11 @@ void setup() {
 
   delay(100); // Let everything stabilize
 
-  
+  /*
   while (!huskylens.begin(Wire)) {
     Serial.println("Begin failed");
     delay(1000);  // Prevent watchdog resets
-  }
+  }*/
 
   delay(1000); // Allow HuskyLens to initialize
 
@@ -175,7 +175,7 @@ server.on("/motor", []() {  // shooter
 
   server.on("/shoot", []() {
     Serial.println("Shoot command received");
-    if (shooterDirection == 1 && digitalRead(upperLimitpusher) == LOW) {
+    if (digitalRead(upperLimitpusher) == LOW) {
     //digitalWrite(Shooter, HIGH);
       tolakDirection = 1; // Extend
       tolakExtendActive = true;
@@ -222,7 +222,7 @@ void loop() {
       HUSKYLENSResult result = huskylens.read();
 
       if (result.xCenter != lastX || result.yCenter != lastY) {
-        Serial.printf("Moved: X=%d, Y=%d\n", result.xCenter, result.yCenter);
+        //Serial.printf("Moved: X=%d, Y=%d\n", result.xCenter, result.yCenter);
         lastX = result.xCenter;
         lastY = result.yCenter;
       } else {
@@ -230,7 +230,7 @@ void loop() {
       }
     }
   } else {
-  Serial.println("No data from HuskyLens");
+  //Serial.println("No data from HuskyLens");
   }
 
 
@@ -288,13 +288,13 @@ void loop() {
     break;
 
   case 1: // Net Up
-    digitalWrite(rightNet, LOW);
-    digitalWrite(leftNet, HIGH);
+    digitalWrite(rightNet, HIGH);
+    digitalWrite(leftNet, LOW);
     break;
 
   case 2: // Net Down
-    digitalWrite(rightNet, HIGH);
-    digitalWrite(leftNet, LOW);
+    digitalWrite(rightNet, LOW);
+    digitalWrite(leftNet, HIGH);
     break;
 
   default: // Fallback to stop
