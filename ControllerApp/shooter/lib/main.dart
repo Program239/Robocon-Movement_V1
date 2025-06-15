@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -17,8 +18,7 @@ class MyApp extends StatelessWidget {
 }
 
 class JoystickPage extends StatefulWidget {
-  JoystickPage({super.key});
-
+  const JoystickPage({super.key});
   @override
   _JoystickPageState createState() => _JoystickPageState();
 }
@@ -30,14 +30,20 @@ class _JoystickPageState extends State<JoystickPage> {
   double netValue = 0;
   int lastX = 0;
   int lastY = 0;
+  int lastHeight = 0;
+  int lastWidth = 0;
+  int _elapsedSeconds = 0;
   bool motorValue = false;
+  bool _timerRunning = false;
+
+  Timer? _gameTimer;
   Timer? _cameraTimer;
 
   @override
   void initState() {
     super.initState();
     _cameraTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-      sendCameraData();
+      receiveCameraData();
     });
   }
 
@@ -45,17 +51,6 @@ class _JoystickPageState extends State<JoystickPage> {
   void dispose() {
     _cameraTimer?.cancel();
     super.dispose();
-  }
-
-  // Send joystick x,y data
-  void sendJoystickData(double x, double y) async {
-    final url = Uri.parse('http://$esp32Ip/joystick?x=$x&y=$y');
-    try {
-      await http.get(url);
-      print('Sent joystick data: x=$x, y=$y');
-    } catch (e) {
-      print('Error sending joystick data: $e');
-    }
   }
 
   // Send slider (rotation) data
@@ -79,13 +74,30 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
-  void sendCameraData() async {
-    final url = Uri.parse('http://$esp32Ip/camera?x=$lastX&y=$lastY');
+  void receiveCameraData() async {
+    final url = Uri.parse('http://$esp32Ip/camera');
     try {
-      await http.get(url);
-      print('Sent camera coordinates: x=$lastX, y=$lastY');
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        // Example response: "/camera?x=123&y=456&width=789&height=101112"
+        final body = response.body;
+        final match = RegExp(r'x=(\d+)&y=(\d+)&width=(\d+)&height=(\d+)').firstMatch(body);
+        if (match != null) {
+          setState(() {
+            lastX = int.parse(match.group(1)!);
+            lastY = int.parse(match.group(2)!);
+            lastWidth = int.parse(match.group(3)!);
+            lastHeight = int.parse(match.group(4)!);
+          });
+          print('Received camera coordinates: x=$lastX, y=$lastY, width=$lastWidth, height=$lastHeight');
+        } else {
+          print('Could not parse camera data: $body');
+        }
+      } else {
+        print('Failed to get camera data: ${response.statusCode}');
+      }
     } catch (e) {
-      print('Error sending camera command: $e');
+      print('Error reading camera coordinates: $e');
     }
   }
   
@@ -109,6 +121,17 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
+  void stopGameTimer() async {
+    final url = Uri.parse('http://$esp32Ip/gameTimer/stop');
+    try {
+      await http.get(url);
+      print('Game timer stopped');
+    } catch (e) {
+      print('Error stopping game timer: $e');
+    }
+  }
+ 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,19 +145,27 @@ class _JoystickPageState extends State<JoystickPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Basket Position = X: $lastX, Y: $lastY',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  'Basket Position = X: $lastX, Y: $lastY, Width: $lastWidth, Height: $lastHeight',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 8, width: 20),
+                Text(
+                  'Game Time: ${_elapsedSeconds}s',
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: stopGameTimer, 
+                  child: Text('Stop Timer')
+                ),
               ],
-            )
+              ),
           ),
           
           // Main control row: joystick + slider + buttons
           Expanded(
             child: Row(
-              children: [
-                const SizedBox(width: 20), // Add some space on the left
+              children: [ // Add some space on the left
                 // Buttons on left
                 Expanded(
                   child: Padding(
@@ -164,10 +195,9 @@ class _JoystickPageState extends State<JoystickPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
                         //Shooter Rotation Buttons
                         Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           // Left rotation button
                           GestureDetector(
@@ -186,7 +216,6 @@ class _JoystickPageState extends State<JoystickPage> {
                               ),
                             ),
                           ),
-                          SizedBox(width: 60),
                           // Right rotation button
                           GestureDetector(
                             onTapDown: (_) => sendShooterDirection(1),
@@ -206,7 +235,6 @@ class _JoystickPageState extends State<JoystickPage> {
                           ),
                         ],
                       ),
-                        const SizedBox(height: 20),
                       
                       // Net Down Button
                       Row(
@@ -230,7 +258,6 @@ class _JoystickPageState extends State<JoystickPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 30),
                       ],
                     ),
                   ),
@@ -245,7 +272,7 @@ class _JoystickPageState extends State<JoystickPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             SizedBox(
                               height: 130,
@@ -271,7 +298,6 @@ class _JoystickPageState extends State<JoystickPage> {
                               ),
                             ),
                             
-                            const SizedBox(width: 20),
                             SizedBox(
                               width: 130, // Set width
                               height: 80, // Set height
@@ -282,7 +308,6 @@ class _JoystickPageState extends State<JoystickPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -292,6 +317,124 @@ class _JoystickPageState extends State<JoystickPage> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.settings),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ParameterPage(esp32Ip: esp32Ip)),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// New ParameterPage widget
+class ParameterPage extends StatefulWidget {
+  final String esp32Ip;
+  const ParameterPage({super.key, required this.esp32Ip});
+
+  @override
+  State<ParameterPage> createState() => _ParameterPageState();
+}
+
+class _ParameterPageState extends State<ParameterPage> {
+  final TextEditingController heightMinController = TextEditingController();
+  final TextEditingController heightMaxController = TextEditingController();
+  final TextEditingController widthMinController = TextEditingController();
+  final TextEditingController widthMaxController = TextEditingController();
+  final TextEditingController xMinController = TextEditingController();
+  final TextEditingController xMaxController = TextEditingController();
+  final TextEditingController yMinController = TextEditingController();
+  final TextEditingController yMaxController = TextEditingController();
+
+  void sendParameters() async {
+    final params = {
+      'heightMin': heightMinController.text,
+      'heightMax': heightMaxController.text,
+      'widthMin': widthMinController.text,
+      'widthMax': widthMaxController.text,
+      'xMin': xMinController.text,
+      'xMax': xMaxController.text,
+      'yMin': yMinController.text,
+      'yMax': yMaxController.text,
+    };
+    final uri = Uri.http(
+      widget.esp32Ip,
+      '/set_params',
+      params,
+    );
+    try {
+      final response = await http.get(uri);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sent! Status: ${response.statusCode}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending parameters')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Set Parameters'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            TextField(
+              controller: heightMinController,
+              decoration: InputDecoration(labelText: 'heightMin'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: heightMaxController,
+              decoration: InputDecoration(labelText: 'heightMax'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: widthMinController,
+              decoration: InputDecoration(labelText: 'widthMin'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: widthMaxController,
+              decoration: InputDecoration(labelText: 'widthMax'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: xMinController,
+              decoration: InputDecoration(labelText: 'xMin'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: xMaxController,
+              decoration: InputDecoration(labelText: 'xMax'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: yMinController,
+              decoration: InputDecoration(labelText: 'yMin'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: yMaxController,
+              decoration: InputDecoration(labelText: 'yMax'),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: sendParameters,
+              child: Text('Send Parameters'),
+            ),
+          ],
+        ),
       ),
     );
   }

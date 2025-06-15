@@ -32,6 +32,7 @@ bool tolakRetractActive = false;
 WebServer server(80);
 
 const char *ssid = "CameraBot";
+const char *ssid = "CameraBot";
 const char *password = "1234567890";
 
 const int GreenLED = 5; // GPIO pin for Green LED
@@ -59,8 +60,7 @@ void setMotor(int pinA, int pinB, float speed) {
 }
 
 void setup() {
-  
-  
+
   Serial.begin(115200);
   Wire.begin(21, 22);  // ESP32 default pins
 
@@ -71,6 +71,7 @@ WiFi.softAP(ssid, password);
     delay(100);
     Serial.print(".");
   }
+  Serial.println("\nWiFi AP started successfully");
   Serial.println("\nWiFi AP started successfully");
   Serial.print("IP address: ");
   Serial.println(WiFi.softAPIP());
@@ -213,158 +214,12 @@ void loop() {
         Serial.printf("Moved: X=%d, Y=%d\n", result.xCenter, result.yCenter);
         lastX = result.xCenter;
         lastY = result.yCenter;
-        lastHeight = result.height;
-        lastWidth = result.width;
-
       } else {
         //Serial.println("Same position, maybe not tracking?");
       }
     }
   } else {
   Serial.println("No data from HuskyLens");
-  }
-
-  if (lastHeight <= heightMax.toInt() && lastHeight >= heightMin.toInt() && lastWidth <= widthMax.toInt() && lastWidth >= widthMin.toInt()) {
-    digitalWrite(GreenLED, HIGH);
-  } else {
-    digitalWrite(GreenLED, LOW);
-  }
-
-  if (lastX <= xMax.toInt() && lastX >= xMin.toInt() && lastY <= yMax.toInt() && lastY >= yMin.toInt()) {
-    digitalWrite(RedLED, HIGH);
-  } else {
-    digitalWrite(RedLED, LOW);
-  }
-
-  if (netMotorRightActive && digitalRead(upperLimitnet) == HIGH) {
-    netUPDOWN = 0;
-    netMotorRightActive = false;
-    Serial.println("Upper limit triggered — Net motor stopped.");
-  }
-
-  if (netMotorLeftActive && digitalRead(lowerLimitnet) == HIGH) {
-    netUPDOWN = 0;
-    netMotorLeftActive = false;
-    Serial.println("Lower limit triggered — Net motor stopped.");
-  }
-
-  if (tolakRetractActive && digitalRead(lowerLimitpusher) == HIGH) {
-    tolakDirection = 0;
-    tolakRetractActive = false;
-    Serial.println("Limit3 triggered — Tolak stopped.");
-  }
-
-  if (tolakExtendActive && digitalRead(upperLimitpusher) == HIGH) {
-    tolakDirection = 0;
-    tolakExtendActive = false;
-    Serial.println("Limit4 triggered — Tolak stopped.");
-    delay(1000);
-    tolakDirection = 2; // Retract
-    Serial.println("Tolak direction: Retract");
-  }
-
-  // Handle movement logic
-  /*switch (netUPDOWN) {
-    case 0: setMotor(rightNet, leftNet, 0.0); break;
-    case 1: setMotor(rightNet, leftNet, 1); break;
-    case 2: setMotor(rightNet, leftNet, -1); break;
-    default: setMotor(rightNet, leftNet, 0.0); break;
-  }*/
-
-  switch (netUPDOWN) {
-  case 0: // Stop
-    digitalWrite(rightNet, LOW);
-    digitalWrite(leftNet, LOW);
-    break;
-
-  case 1: // Net Up
-    digitalWrite(rightNet, LOW);
-    digitalWrite(leftNet, HIGH);
-    break;
-
-  case 2: // Net Down
-    digitalWrite(rightNet, HIGH);
-    digitalWrite(leftNet, LOW);
-    break;
-
-  default: // Fallback to stop
-    digitalWrite(rightNet, LOW);
-    digitalWrite(leftNet, LOW);
-    break;
-}
-
-
-  /*switch (tolakDirection) { //for motodriver
-    case 0: setMotor(Tolak1, Tolak2, 0.0); break;
-    case 1: setMotor(Tolak1, Tolak2, 1); break;
-    case 2: setMotor(Tolak1, Tolak2, -1); break;
-    default: setMotor(Tolak1, Tolak2, 0.0); break;
-  }*/
-
-switch (tolakDirection) {
-  case 0: // Stop
-    digitalWrite(Tolak1, LOW);
-    digitalWrite(Tolak2, LOW);
-    break;
-
-  case 1: // Extend (or right)
-    digitalWrite(Tolak1, HIGH);
-    digitalWrite(Tolak2, LOW);
-    break;
-
-  case 2: // Retract (or left)
-    digitalWrite(Tolak1, LOW);
-    digitalWrite(Tolak2, HIGH);
-    break;
-
-  default: // Fallback to stop
-    digitalWrite(Tolak1, LOW);
-    digitalWrite(Tolak2, LOW);
-    break;
-}
-
-
-  /*switch (turnDirection) { //for motodriver
-    case 0: setMotor(rightTurn, leftTurn, 0.0); break;
-    case 1: setMotor(rightTurn, leftTurn, 1); break;
-    case 2: setMotor(rightTurn, leftTurn, -1); break;
-    default: setMotor(rightTurn, leftTurn, 0.0); break;
-  }*/
-
-  switch (turnDirection) {
-  case 0: // Stop
-    digitalWrite(rightTurn, LOW);
-    digitalWrite(leftTurn, LOW);
-    break;
-
-  case 1: // Right turn
-    digitalWrite(rightTurn, HIGH);
-    digitalWrite(leftTurn, LOW);
-    break;
-
-  case 2: // Left turn
-    digitalWrite(rightTurn, LOW);
-    digitalWrite(leftTurn, HIGH);
-    break;
-
-  default: // Fallback to stop
-    digitalWrite(rightTurn, LOW);
-    digitalWrite(leftTurn, LOW);
-    break;
-}
-
-
-  /*switch (shooterDirection) {//for relay
-    case 0: digitalWrite(Shooter, LOW); break;
-    case 1: digitalWrite(Shooter, HIGH); break;
-    default: digitalWrite(Shooter, LOW); break;
-  }*/
-
-  switch (shootSpeed) {
-  case 0: setMotor(rightTurn, leftTurn, 0.0); break;
-  case 1: setMotor(rightTurn, leftTurn, 1); break;
-  case 2: setMotor(rightTurn, leftTurn, -1); break;
-  default: setMotor(rightTurn, leftTurn, 0.0); break;
   }
 
   server.handleClient();
