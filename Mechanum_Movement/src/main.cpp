@@ -25,7 +25,7 @@ int shooterStep = 0;
 const char *ssid = "MFI mechanum";
 const char *password = "mechanumm111";
 
-const float df = 0.1;
+const float df = 1; // Distance factor, adjust as needed for your robot's dimensions
 
 const int MAX_PWM = 200;
 
@@ -33,15 +33,15 @@ WebServer server(80);
 
 // put function definitions here:
 void computeWheelSpeeds(float Vx, float Vy, float omega,float &vFR, float &vFL, float &vBR, float &vBL) {
-  
-   vFR = Vy - Vx + df * omega;
 
-   vFL = Vy + Vx - df * omega;
-  
-   vBR = -Vx - Vy + df * omega;
+   vFR = Vx - Vy + (df * omega);
 
-   vBL =  Vx - Vy - df * omega;
-  
+   vFL = Vx + Vy - (df * omega);
+
+   vBR = -Vy - Vx - (df * omega);
+
+   vBL =  Vy - Vx + (df * omega);
+
 }
 
 void setMotor(int pinA, int pinB, float speed) {
@@ -101,11 +101,6 @@ void setup() {
   server.send(200, "text/plain", "ESP32 is running!");
   });
 
-  server.onNotFound([]() {
-  Serial.printf("NOT FOUND: %s\n", server.uri().c_str());
-  server.send(404, "text/plain", "Not found");
-  });
-
   server.on("/shoot", []() {
     if(!shooterActive){
       shooterActive = true;
@@ -120,15 +115,27 @@ void setup() {
     }
   });
 
-  server.on("/rotation", []() {   
-    int shooterDirection = server.arg("val").toInt();
-    Serial.printf("Tolak is pressed\n");
+  server.on("/rotation", []() {
+    shooterDirection = server.arg("val").toInt();
+    //Serial.printf("Rotation value received: %d\n", shooterDirection);
     server.send(200, "text/plain", "rotation value received.");
-    digitalWrite(Tolak,HIGH);
-    delay(4000);
-    digitalWrite(Tolak,LOW);
   });
 
+  server.on("/gameTimer", []() {
+    // Handle game timer logic here
+    server.send(200, "text/plain", "gameTimer value received.");
+  });
+
+  server.on("/camera", []() {
+    // Handle camera logic here
+    server.send(200, "text/plain", "camera value received.");
+  });
+
+  server.onNotFound([]() {
+    //Serial.printf("NOT FOUND: %s\n", server.uri().c_str());
+    // Do not send any response for undefined routes
+    // server.send(404, "text/plain", "Not found");
+  });
 
   server.begin(); // <-- This line was misplaced before. Now it's correctly placed outside the handler.
 
@@ -136,23 +143,35 @@ void setup() {
 void loop() {
    float stickY = joystickY.toFloat();
    float stickX = joystickX.toFloat();
-   float stickRx = shooterDirection - 0.1;
+   float stickRx = shooterDirection;
    float vFR, vFL, vBR, vBL;
-
-    computeWheelSpeeds(stickY, stickX, stickRx, vFR, vFL, vBR, vBL);
+/*
+   Serial.print(F("\tvstickX: "));
+    Serial.print(stickX);
+    Serial.print(F("\tvstickY: "));
+    Serial.print(stickY);
+    Serial.print(F("\tvstickRx: "));
+    Serial.print(stickRx);
+    Serial.print(F("\n"));
+*/
+    computeWheelSpeeds(stickX, stickY, stickRx, vFR, vFL, vBR, vBL);
+    delay(100); // Delay to allow for smoother control, adjust as needed
     setMotor(motorFR_L1, motorFR_R1, vFR);
     setMotor(motorFL_L2, motorFL_R2, vFL);
     setMotor(motorBR_L3, motorBR_R3, vBR);
     setMotor(motorBL_L4, motorBL_R4, vBL);
 
-    /*Serial.print(F("\tvFR: "));
+    
+    Serial.print(F("\tvFR: "));
     Serial.print(vFR);
     Serial.print(F("\tvFL: "));
     Serial.print(vFL);
     Serial.print(F("\tvBR: "));
     Serial.print(vBR);
-    Serial.print(F("\tvBL: \n"));
-    Serial.print(vBL);*/
+    Serial.print(F("\tvBL: "));
+    Serial.print(vBL);
+    Serial.print(F("\n"));
+    
     //Serial.print(F("\tSpeed: "));
 
     if (shooterActive) {
