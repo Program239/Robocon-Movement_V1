@@ -100,6 +100,30 @@ class _JoystickPageState extends State<JoystickPage> {
       print('Error reading camera coordinates: $e');
     }
   }
+
+  void receiveTimerData() async {
+    final url = Uri.parse('http://$esp32Ip/gameTimer');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        // Example response: "/camera?x=123&y=456&width=789&height=101112"
+        final body = response.body;
+        final match = RegExp(r'time=(\d+)').firstMatch(body);
+        if (match != null) {
+          setState(() {
+            _elapsedSeconds = int.parse(match.group(1)!);
+          });
+          print('Received game timer: $_elapsedSeconds');
+        } else {
+          print('Could not parse game timer data: $body');
+        }
+      } else {
+        print('Failed to get game timer data: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error reading game timer data: $e');
+    }
+  }
   
   void sendMotorValue(int val) async {
     final url = Uri.parse('http://$esp32Ip/motor?value=$val');

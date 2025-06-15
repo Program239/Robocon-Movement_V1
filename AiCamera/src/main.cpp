@@ -51,8 +51,6 @@ void setup() {
 
   delay(1000); // Allow HuskyLens to initialize
 
-
-
   server.on("/camera", HTTP_GET, []() {
       String response = "/camera?x=" + String(lastX) + "&y=" + String(lastY) + "&width=" + String(lastWidth) + "&height=" + String(lastHeight);
       server.sendHeader("Location", response);
