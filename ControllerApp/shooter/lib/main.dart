@@ -149,7 +149,7 @@ class _JoystickPageState extends State<JoystickPage> {
   }
 
   void stopGameTimer() async {
-    final url = Uri.parse('http://$esp32Ip/gameTimer/stop');
+    final url = Uri.parse('http://$esp32MasterIp/gameTimer/stop');
     try {
       await http.get(url);
       print('Game timer stopped');

@@ -22,7 +22,7 @@ void requestSlaveCoords() {
     Serial.println("Received from slave: " + payload);
 
     // Parse parameters from payload
-    int x = 0, y = 0, width = 0, height = 0;
+    int x = -1, y = -1, width = -1, height = -1;
     int idx;
 
     idx = payload.indexOf("x=");
