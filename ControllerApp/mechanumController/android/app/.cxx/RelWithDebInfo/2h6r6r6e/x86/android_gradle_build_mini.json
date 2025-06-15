@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "D:\\Visual Studio Code\\flutter\\packages\\flutter_tools\\gradle\\src\\main\\groovy\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "C:\\Users\\HarizPC\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "D:\\Visual Studio Code\\Robocon2025_MFI\\ControllerApp\\mechanumController\\android\\app\\.cxx\\RelWithDebInfo\\2h6r6r6e\\x86",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "C:\\Users\\HarizPC\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "D:\\Visual Studio Code\\Robocon2025_MFI\\ControllerApp\\mechanumController\\android\\app\\.cxx\\RelWithDebInfo\\2h6r6r6e\\x86",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}
