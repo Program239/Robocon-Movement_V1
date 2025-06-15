@@ -162,7 +162,7 @@ void loop() {
   if (lastX <= xMax.toInt() && lastX >= xMin.toInt() && lastY <= yMax.toInt() && lastY >= yMin.toInt()) {
     digitalWrite(RedLED, HIGH);
   } else {
-    digitalWrite(RedLED, LOW);
+    digitalWrite(RedLED, LOW);  
   }
 
   server.handleClient();
