@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
-import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -24,7 +23,8 @@ class JoystickPage extends StatefulWidget {
 }
 
 class _JoystickPageState extends State<JoystickPage> {
-  String esp32Ip = '192.168.4.1'; // Default ESP32 IP
+  String esp32Ip = '192.168.4.101'; // Default ESP32 IP
+  String esp32MasterIp = '192.168.4.1'; // Default ESP32 Master IP
   final TextEditingController ipController = TextEditingController();
   double sliderValue = 0;
   double netValue = 0;
@@ -34,7 +34,6 @@ class _JoystickPageState extends State<JoystickPage> {
   int lastWidth = 0;
   int _elapsedSeconds = 0;
   bool motorValue = false;
-  bool _timerRunning = false;
 
   Timer? _gameTimer;
   Timer? _cameraTimer;
@@ -42,14 +41,18 @@ class _JoystickPageState extends State<JoystickPage> {
   @override
   void initState() {
     super.initState();
-    _cameraTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _cameraTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
       receiveCameraData();
+    });
+    _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      receiveTimerData();
     });
   }
 
   @override
   void dispose() {
     _cameraTimer?.cancel();
+    _gameTimer?.cancel();
     super.dispose();
   }
 
@@ -75,7 +78,7 @@ class _JoystickPageState extends State<JoystickPage> {
   }
 
   void receiveCameraData() async {
-    final url = Uri.parse('http://$esp32Ip/camera');
+    final url = Uri.parse('http://$esp32MasterIp/camera');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -102,7 +105,7 @@ class _JoystickPageState extends State<JoystickPage> {
   }
 
   void receiveTimerData() async {
-    final url = Uri.parse('http://$esp32Ip/gameTimer');
+    final url = Uri.parse('http://$esp32MasterIp/gameTimer');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {

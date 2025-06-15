@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
-import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -19,14 +18,15 @@ class MyApp extends StatelessWidget {
 }
 
 class JoystickPage extends StatefulWidget {
-  JoystickPage({super.key});
+  const JoystickPage({super.key});
 
   @override
   _JoystickPageState createState() => _JoystickPageState();
 }
 
 class _JoystickPageState extends State<JoystickPage> {
-  String esp32Ip = '192.168.4.103'; // Default ESP32 IP
+  String esp32Ip = '192.168.4.102'; // Default ESP32 IP
+  String esp32MasterIp = '192.168.4.1'; // Default ESP32 Master IP
   final TextEditingController ipController = TextEditingController();
   int rotationValue = 0;
   double directionVal = 0;
@@ -35,7 +35,6 @@ class _JoystickPageState extends State<JoystickPage> {
   int lastHeight = 0;
   int lastWidth = 0;
   int _elapsedSeconds = 0;
-  bool _timerRunning = false;
 
   Timer? _gameTimer;
   Timer? _cameraTimer;
@@ -43,14 +42,18 @@ class _JoystickPageState extends State<JoystickPage> {
   @override
   void initState() {
     super.initState();
-    _cameraTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _cameraTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
       receiveCameraData();
+    });
+    _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      receiveTimerData();
     });
   }
 
   @override
   void dispose() {
     _cameraTimer?.cancel();
+    _gameTimer?.cancel();
     super.dispose();
   }
 
@@ -86,44 +89,33 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
-  void sendGameTime(int val) async {
-    final url = Uri.parse('http://$esp32Ip/gameTimer?time=$val');
+  void receiveTimerData() async {
+    final url = Uri.parse('http://$esp32MasterIp/gameTimer');
     try {
-      await http.get(url);
-      print('Game time sent');
-    } catch (e) {
-      print('Error sending game time: $e');
-    }
-  }
-
-  void startGameTimer() {
-    if (_gameTimer != null && _gameTimer!.isActive) return; // Prevent multiple timers
-
-    _timerRunning = true;
-    _elapsedSeconds = 0;
-
-    _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (_timerRunning) {
-        setState(() {
-          _elapsedSeconds++;
-          sendGameTime(_elapsedSeconds);
-        });
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        // Example response: "/camera?x=123&y=456&width=789&height=101112"
+        final body = response.body;
+        final match = RegExp(r'time=(\d+)').firstMatch(body);
+        if (match != null) {
+          setState(() {
+            _elapsedSeconds = int.parse(match.group(1)!);
+          });
+          print('Received game timer: $_elapsedSeconds');
+        } else {
+          print('Could not parse game timer data: $body');
+        }
+      } else {
+        print('Failed to get game timer data: ${response.statusCode}');
       }
-    });
+    } catch (e) {
+      print('Error reading game timer data: $e');
+    }
   }
 
-  void stopGameTimer() {
-    if (_gameTimer != null) {
-      _elapsedSeconds = 0;
-      _gameTimer!.cancel();
-      _gameTimer = null;
-    
-    }
-    _timerRunning = false;
-  }
 
   void receiveCameraData() async {
-    final url = Uri.parse('http://$esp32Ip/camera');
+    final url = Uri.parse('http://$esp32MasterIp/camera');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -168,11 +160,6 @@ class _JoystickPageState extends State<JoystickPage> {
                   'Game Time: ${_elapsedSeconds}s',
                   style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(width: 20),
-                ElevatedButton(
-                  onPressed: stopGameTimer, 
-                  child: Text('Stop Timer')
-                ),
               ],
               ),
           ),
@@ -194,8 +181,7 @@ class _JoystickPageState extends State<JoystickPage> {
                         if (x.abs() < 0.2 && y.abs() < 0.2) {
                           sendJoystickData(0, 0);
                           return;
-                        }
-                        startGameTimer(); // Start timer when joystick is used
+                        }// Start timer when joystick is used
                         sendJoystickData(x, y);
                       },
                     ),

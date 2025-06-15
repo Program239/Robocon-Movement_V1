@@ -124,7 +124,7 @@ class _JoystickPageState extends State<JoystickPage> {
   }
 
   void receiveCameraData() async {
-    final url = Uri.parse('http://$esp32Ip/camera');
+    final url = Uri.parse('http://$esp32MasterIp/camera');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
