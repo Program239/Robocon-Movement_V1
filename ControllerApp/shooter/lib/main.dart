@@ -30,6 +30,8 @@ class _JoystickPageState extends State<JoystickPage> {
   double netValue = 0;
   int lastX = 0;
   int lastY = 0;
+  int lastHeight = 0;
+  int lastWidth = 0;
   int _elapsedSeconds = 0;
   bool motorValue = false;
   bool _timerRunning = false;
@@ -77,15 +79,17 @@ class _JoystickPageState extends State<JoystickPage> {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        // Example response: "/camera?x=123&y=456"
+        // Example response: "/camera?x=123&y=456&width=789&height=101112"
         final body = response.body;
-        final match = RegExp(r'x=(\d+)&y=(\d+)').firstMatch(body);
+        final match = RegExp(r'x=(\d+)&y=(\d+)&width=(\d+)&height=(\d+)').firstMatch(body);
         if (match != null) {
           setState(() {
             lastX = int.parse(match.group(1)!);
             lastY = int.parse(match.group(2)!);
+            lastWidth = int.parse(match.group(3)!);
+            lastHeight = int.parse(match.group(4)!);
           });
-          print('Received camera coordinates: x=$lastX, y=$lastY');
+          print('Received camera coordinates: x=$lastX, y=$lastY, width=$lastWidth, height=$lastHeight');
         } else {
           print('Could not parse camera data: $body');
         }
@@ -141,8 +145,8 @@ class _JoystickPageState extends State<JoystickPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Basket Position = X: $lastX, Y: $lastY',
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                  'Basket Position = X: $lastX, Y: $lastY, Width: $lastWidth, Height: $lastHeight',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8, width: 20),
                 Text(
