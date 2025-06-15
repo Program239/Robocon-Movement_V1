@@ -19,13 +19,12 @@ class MyApp extends StatelessWidget {
 
 class JoystickPage extends StatefulWidget {
   const JoystickPage({super.key});
-
   @override
   _JoystickPageState createState() => _JoystickPageState();
 }
 
 class _JoystickPageState extends State<JoystickPage> {
-  String esp32Ip = '192.168.4.103'; // Default ESP32 IP
+  String esp32Ip = '192.168.4.1'; // Default ESP32 IP
   final TextEditingController ipController = TextEditingController();
   double sliderValue = 0;
   double netValue = 0;
@@ -42,7 +41,7 @@ class _JoystickPageState extends State<JoystickPage> {
   void initState() {
     super.initState();
     _cameraTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-      sendCameraData();
+      receiveCameraData();
     });
   }
 
@@ -73,17 +72,23 @@ class _JoystickPageState extends State<JoystickPage> {
     }
   }
 
-  void sendCameraData() async {
+  void receiveCameraData() async {
     final url = Uri.parse('http://$esp32Ip/camera');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          lastX = data['x'] ?? lastX;
-          lastY = data['y'] ?? lastY;
-        });
-        print('Received camera coordinates: x=$lastX, y=$lastY');
+        // Example response: "/camera?x=123&y=456"
+        final body = response.body;
+        final match = RegExp(r'x=(\d+)&y=(\d+)').firstMatch(body);
+        if (match != null) {
+          setState(() {
+            lastX = int.parse(match.group(1)!);
+            lastY = int.parse(match.group(2)!);
+          });
+          print('Received camera coordinates: x=$lastX, y=$lastY');
+        } else {
+          print('Could not parse camera data: $body');
+        }
       } else {
         print('Failed to get camera data: ${response.statusCode}');
       }
@@ -109,6 +114,16 @@ class _JoystickPageState extends State<JoystickPage> {
       print('Shoot command sent');
     } catch (e) {
       print('Error sending shoot command: $e');
+    }
+  }
+
+  void stopGameTimer() async {
+    final url = Uri.parse('http://$esp32Ip/gameTimer/stop');
+    try {
+      await http.get(url);
+      print('Game timer stopped');
+    } catch (e) {
+      print('Error stopping game timer: $e');
     }
   }
  
@@ -298,6 +313,124 @@ class _JoystickPageState extends State<JoystickPage> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.settings),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ParameterPage(esp32Ip: esp32Ip)),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// New ParameterPage widget
+class ParameterPage extends StatefulWidget {
+  final String esp32Ip;
+  const ParameterPage({super.key, required this.esp32Ip});
+
+  @override
+  State<ParameterPage> createState() => _ParameterPageState();
+}
+
+class _ParameterPageState extends State<ParameterPage> {
+  final TextEditingController heightMinController = TextEditingController();
+  final TextEditingController heightMaxController = TextEditingController();
+  final TextEditingController widthMinController = TextEditingController();
+  final TextEditingController widthMaxController = TextEditingController();
+  final TextEditingController xMinController = TextEditingController();
+  final TextEditingController xMaxController = TextEditingController();
+  final TextEditingController yMinController = TextEditingController();
+  final TextEditingController yMaxController = TextEditingController();
+
+  void sendParameters() async {
+    final params = {
+      'heightMin': heightMinController.text,
+      'heightMax': heightMaxController.text,
+      'widthMin': widthMinController.text,
+      'widthMax': widthMaxController.text,
+      'xMin': xMinController.text,
+      'xMax': xMaxController.text,
+      'yMin': yMinController.text,
+      'yMax': yMaxController.text,
+    };
+    final uri = Uri.http(
+      widget.esp32Ip,
+      '/set_params',
+      params,
+    );
+    try {
+      final response = await http.get(uri);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sent! Status: ${response.statusCode}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending parameters')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Set Parameters'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            TextField(
+              controller: heightMinController,
+              decoration: InputDecoration(labelText: 'heightMin'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: heightMaxController,
+              decoration: InputDecoration(labelText: 'heightMax'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: widthMinController,
+              decoration: InputDecoration(labelText: 'widthMin'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: widthMaxController,
+              decoration: InputDecoration(labelText: 'widthMax'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: xMinController,
+              decoration: InputDecoration(labelText: 'xMin'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: xMaxController,
+              decoration: InputDecoration(labelText: 'xMax'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: yMinController,
+              decoration: InputDecoration(labelText: 'yMin'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: yMaxController,
+              decoration: InputDecoration(labelText: 'yMax'),
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: sendParameters,
+              child: Text('Send Parameters'),
+            ),
+          ],
+        ),
       ),
     );
   }
